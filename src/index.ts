@@ -3,16 +3,16 @@
  */
 
 export {
+  findAgent3mdAgents,
+  findAgent3mdSkills,
+} from "./catalog/agent3md.ts";
+export {
   buildContext,
   type ContextPack,
   type ContextResult,
 } from "./catalog/context.ts";
 export { buildScanContext } from "./catalog/context-builder.ts";
 export { type FindResult, findAssets } from "./catalog/find.ts";
-export {
-  findAgent3mdAgents,
-  findAgent3mdSkills,
-} from "./catalog/agent3md.ts";
 export { attributeHost, federateWorktrees } from "./catalog/merge.ts";
 export {
   FIND_KINDS,
