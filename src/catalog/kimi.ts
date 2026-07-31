@@ -179,13 +179,15 @@ export function findKimiSessions(ctx: ScanContext): IndexCard[] {
 
   if (ctx.scope === "user" || ctx.scope === "all") {
     for (const [id, ws] of byId) {
+      const root = safeRealpath(ws.root) ?? ws.root;
       cards.push({
         id: pathCardId("sessions", `kimi-ws:${id}`),
         kind: "sessions",
         host: "kimi",
         name: `workspace:${ws.name}`,
-        path: ws.root,
+        path: root,
         scope: "user",
+        repo_root: root,
         meta: {
           path_only: true,
           kind: "workspace",
@@ -194,7 +196,7 @@ export function findKimiSessions(ctx: ScanContext): IndexCard[] {
         },
       });
     }
-    // shallow list workspace session roots
+    // shallow list workspace session roots, bind to workspace root when known
     const sessionsRoot = join(home, "sessions");
     if (isDirectory(sessionsRoot)) {
       try {
@@ -206,6 +208,8 @@ export function findKimiSessions(ctx: ScanContext): IndexCard[] {
           if (!isDirectory(p)) {
             continue;
           }
+          const ws = byId.get(name);
+          const root = ws ? (safeRealpath(ws.root) ?? ws.root) : undefined;
           cards.push({
             id: pathCardId("sessions", p),
             kind: "sessions",
@@ -213,11 +217,14 @@ export function findKimiSessions(ctx: ScanContext): IndexCard[] {
             name,
             path: p,
             scope: "user",
+            repo_root: root,
             mtime_ms: mtimeMs(p),
             meta: {
               path_only: true,
               kind: "workspace_sessions_dir",
               bytes: fileBytes(p),
+              workspace_id: name,
+              workspace_name: ws?.name,
             },
           });
         }

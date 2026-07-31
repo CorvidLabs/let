@@ -98,25 +98,45 @@ export function findCursorSessions(ctx: ScanContext): IndexCard[] {
       }),
     );
   }
-  // project indexes
+  // project indexes — dir names often encode paths like Users-leif-Development-…
   const projects = join(cursorHome(), "projects");
   if (isDirectory(projects) && (ctx.scope === "user" || ctx.scope === "all")) {
     for (const child of listChildPaths(projects, ctx.policy, {
       directoriesOnly: true,
     }).slice(0, 100)) {
+      const leaf = basename(child);
+      const repoRoot = decodeCursorProjectName(leaf);
       cards.push(
         makeCard({
           kind: "sessions",
           host: "cursor",
           path: child,
+          name: leaf,
           scope: "user",
           pathOnly: true,
-          meta: { source: "cursor.projects", kind: "project_index" },
+          repoRoot: repoRoot ?? null,
+          meta: {
+            source: "cursor.projects",
+            kind: "project_index",
+            decoded_root: repoRoot,
+          },
         }),
       );
     }
   }
   return cards;
+}
+
+/** Best-effort: Users-leif-Development-foo → /Users/leif/Development/foo */
+function decodeCursorProjectName(name: string): string | undefined {
+  if (name.startsWith("Users-") || name.startsWith("home-")) {
+    const body = name.replaceAll("-", "/");
+    const abs = `/${body}`;
+    if (abs.startsWith("/Users/") || abs.startsWith("/home/")) {
+      return abs;
+    }
+  }
+  return undefined;
 }
 
 /** Plans as tasks (user|all; body allowed on show — markdown plans). */

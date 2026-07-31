@@ -145,6 +145,11 @@ export function findGeminiSessions(ctx: ScanContext): IndexCard[] {
   }
 
   if (ctx.scope === "user" || ctx.scope === "all") {
+    // reverse: short name -> absolute project path
+    const byShort = new Map<string, string>();
+    for (const [path, name] of projects) {
+      byShort.set(name, path);
+    }
     if (isDirectory(historyRoot)) {
       try {
         for (const name of readdirSync(historyRoot).slice(
@@ -155,6 +160,7 @@ export function findGeminiSessions(ctx: ScanContext): IndexCard[] {
           if (!isDirectory(p)) {
             continue;
           }
+          const repoRoot = byShort.get(name);
           cards.push({
             id: pathCardId("sessions", p),
             kind: "sessions",
@@ -162,8 +168,13 @@ export function findGeminiSessions(ctx: ScanContext): IndexCard[] {
             name,
             path: p,
             scope: "user",
+            repo_root: repoRoot,
             mtime_ms: mtimeMs(p),
-            meta: { path_only: true, kind: "history" },
+            meta: {
+              path_only: true,
+              kind: "history",
+              project_key: name,
+            },
           });
         }
       } catch {
@@ -179,6 +190,7 @@ export function findGeminiSessions(ctx: ScanContext): IndexCard[] {
         name: `project:${name}`,
         path,
         scope: "user",
+        repo_root: path,
         meta: {
           path_only: true,
           kind: "projects_json",
