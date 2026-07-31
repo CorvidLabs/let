@@ -14,8 +14,11 @@
     "bin",
     "src",
     "docs",
+    "agent.3md",
+    "CHANGELOG.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "plugin.toml"
   ],
   "repository": {
     "type": "git",
