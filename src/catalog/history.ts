@@ -4,6 +4,7 @@
  */
 
 import type { ScanContext } from "../adapters/types.ts";
+import { decodeClaudeProjectPath } from "../paths.ts";
 import { findAssets } from "./find.ts";
 import type { HostId, IndexCard } from "./types.ts";
 
@@ -55,6 +56,7 @@ function inferRepoRoot(card: IndexCard): string | undefined {
     return card.repo_root;
   }
   const p = card.path.replace(/\\/g, "/");
+
   // Grok: ~/.grok/sessions/<encodeURIComponent(absPath)>
   if (p.includes("/.grok/sessions/")) {
     const leaf = p.split("/.grok/sessions/")[1]?.split("/")[0];
@@ -66,8 +68,43 @@ function inferRepoRoot(card: IndexCard): string | undefined {
       }
     }
   }
+
+  // Claude: ~/.claude/projects/<encoded> or jsonl under that dir
+  if (p.includes("/.claude/projects/")) {
+    const enc = p.split("/.claude/projects/")[1]?.split("/")[0];
+    if (enc) {
+      const decoded = decodeClaudeProjectPath(enc);
+      if (decoded) {
+        return decoded;
+      }
+    }
+  }
+
+  // Kimi: workspace root paths (not under ~/.kimi-code)
+  if (
+    card.host === "kimi" &&
+    p.startsWith("/") &&
+    !p.includes("/.kimi-code/")
+  ) {
+    return p;
+  }
+
+  // Gemini projects.json cards use path as project root
+  if (card.host === "gemini" && p.startsWith("/") && !p.includes("/.gemini/")) {
+    return p;
+  }
+
+  // Codex checkout dirs under worktrees (not session jsonl)
+  if (
+    p.includes("/.codex/worktrees/") &&
+    !p.endsWith(".jsonl") &&
+    !p.includes("/sessions/")
+  ) {
+    return p;
+  }
+
   // Card name sometimes is the absolute path (decoded grok bucket)
-  if (card.name.startsWith("/") && card.name.includes("/Development")) {
+  if (card.name.startsWith("/") && card.name.includes("/")) {
     return card.name;
   }
   return undefined;

@@ -36,6 +36,27 @@ export function kimiHome(): string {
   return join(homeDir(), ".kimi-code");
 }
 
+/**
+ * Best-effort reverse of encodeClaudeProjectPath.
+ * `/` and `_` both encode to `-`, so `--` is treated as `_`.
+ */
+export function decodeClaudeProjectPath(encoded: string): string | null {
+  if (!encoded.startsWith("-") && !encoded.includes("-")) {
+    return null;
+  }
+  let body = encoded.startsWith("-") ? encoded.slice(1) : encoded;
+  // Placeholder for original underscores (encoded as --)
+  body = body.replaceAll("--", "\u0000");
+  body = body.replaceAll("-", "/");
+  body = body.replaceAll("\u0000", "_");
+  const abs = `/${body}`;
+  // Sanity: must look like a path under /Users or /home
+  if (!abs.startsWith("/Users/") && !abs.startsWith("/home/")) {
+    return abs.length > 3 ? abs : null;
+  }
+  return abs;
+}
+
 export function projectClaudeDir(repoRoot: string): string {
   return join(repoRoot, ".claude");
 }
