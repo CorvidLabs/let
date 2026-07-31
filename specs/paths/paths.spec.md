@@ -26,7 +26,10 @@ plus Claude project path encoding.
 | `grokHome` | `~/.grok`. |
 | `codexHome` | `~/.codex`. |
 | `cursorHome` | `~/.cursor`. |
+| `geminiHome` | `~/.gemini`. |
+| `kimiHome` | `~/.kimi-code`. |
 | `projectClaudeDir` | `<repo>/.claude`. |
+| `projectGeminiDir` | `<repo>/.gemini`. |
 | `projectLetDir` | `<repo>/.let`. |
 | `absPath` | Resolve path against cwd. |
 | `encodeClaudeProjectPath` | Encode absolute path like Claude `projects/` dir names. |

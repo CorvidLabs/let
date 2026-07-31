@@ -9,6 +9,9 @@ Grok Build, Codex, Cursor, Merlin, corvid-agent, private runners).
 let where .                         # what agent stuff is here?
 let find worktrees --json           # .claude/worktrees + ~/.codex + git + …
 let find skills --host agent3md --json
+let skill route "find worktrees" --json
+let show skill find-worktrees --json  # progressive body load
+let open ./agent.3md --json
 let find agents --json              # agent.3md documents
 let context --json
 let doctor --json
@@ -27,20 +30,43 @@ let doctor --json
 
 - **Worktrees** — git seed + Claude / Codex / Cursor / project overlays, deduped by realpath
 - **Skills** — Claude, Grok, Cursor catalogs + **agent.3md skill planes**
-- **Agents** — discovers and validates `agent.3md` via `@corvidlabs/agent3md` (3md)
-- **Instructions** — `CLAUDE.md`, `AGENTS.md`, Cursor rules, …
-- **Dogfood** — this repo ships `agent.3md` and can find itself
+- **Hosts** — Claude, Codex, Cursor, Grok, **Gemini**, **Kimi Code**, agent.3md
+- **Show / open / route** — progressive bodies + skill ranking (sessions stay metadata-only)
+- **Agents** — Claude/Codex/Cursor agent dirs + agent.3md + Gemini antigravity
+- **Instructions** — `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Cursor rules, …
+- **Dogfood** — this repo ships `agent.3md` and can find + show + route itself
 - **JSON-first** — stable envelopes for agents (`--json`)
 
-## Install (dev)
+## Install
+
+### Via fledge (recommended for CorvidLabs projects)
+
+```bash
+fledge plugins install CorvidLabs/let
+# or from a local checkout:
+# fledge plugins install /path/to/let --force
+
+fledge let doctor --json
+fledge let find worktrees --json
+fledge let where .
+```
+
+Any project that already uses fledge can install `let` the same way as
+`fledge-plugin-memory` / `fledge-plugin-github`. Agents then call `fledge let …`
+without a separate PATH setup.
+
+### Standalone (any host: Claude, Codex, Cursor, Kimi, …)
 
 ```bash
 git clone https://github.com/CorvidLabs/let
 cd let
 bun install
-bun link
+bun link          # or: ./bin/let
 let doctor --json
 ```
+
+If the shell `let` builtin shadows the binary, use `./bin/let` or
+`bun run src/cli.ts`.
 
 ## Docs
 

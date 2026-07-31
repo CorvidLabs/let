@@ -40,4 +40,21 @@ describe("dogfood: let discovers itself", () => {
     expect(w.related.instructions.length).toBeGreaterThanOrEqual(1);
     expect(w.related.sessions).toEqual([]);
   });
+
+  test("show loads agent.3md skill body", async () => {
+    const { showAsset } = await import("../src/catalog/show.ts");
+    const ctx = buildScanContext({ cwd: root });
+    const body = await showAsset("skill", "where", ctx);
+    expect(body.body).toBeTruthy();
+    expect(body.host).toBe("agent3md");
+  });
+
+  test("route ranks agent.3md skills", async () => {
+    const { routeSkills } = await import("../src/catalog/route.ts");
+    const ctx = buildScanContext({ cwd: root });
+    const r = await routeSkills("diagnose doctor health", ctx, {
+      host: "agent3md",
+    });
+    expect(r.top?.skill.name).toBe("doctor");
+  });
 });

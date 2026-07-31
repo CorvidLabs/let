@@ -44,3 +44,8 @@ Brief context pack (instructions, worktree sample, skills). No sessions.
 # Skill: doctor
 
 Host root health and config trust summary.
+
+@plane z=6 label="route" kind=skill triggers="route, which skill, pick skill, match skill" inputs="text:string" tool="let skill route {text} --json"
+# Skill: route
+
+Rank skills for a natural-language request. Fill {text}, then show the top skill.

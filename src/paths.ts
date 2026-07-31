@@ -26,8 +26,22 @@ export function cursorHome(): string {
   return join(homeDir(), ".cursor");
 }
 
+/** Google Gemini CLI / Antigravity home. */
+export function geminiHome(): string {
+  return join(homeDir(), ".gemini");
+}
+
+/** Kimi Code CLI home. */
+export function kimiHome(): string {
+  return join(homeDir(), ".kimi-code");
+}
+
 export function projectClaudeDir(repoRoot: string): string {
   return join(repoRoot, ".claude");
+}
+
+export function projectGeminiDir(repoRoot: string): string {
+  return join(repoRoot, ".gemini");
 }
 
 export function projectLetDir(repoRoot: string): string {

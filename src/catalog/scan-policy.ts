@@ -22,6 +22,9 @@ export const DEFAULT_SCAN_POLICY: ScanPolicy = {
     "history.jsonl",
     "managed_config.toml",
     ".env",
+    "oauth_creds.json",
+    "google_accounts.json",
+    "credentials",
   ],
 };
 
