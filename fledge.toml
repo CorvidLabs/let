@@ -13,7 +13,7 @@ doctor = "bun run src/cli.ts doctor --json"
 # Library smoke: CLI still loads after build artifacts change
 cli-smoke = "bun run src/cli.ts version --json && bun run src/cli.ts doctor --json"
 # Self-discovery: instructions + agent.3md via the CLI
-dogfood = "bun test test/dogfood.test.ts && bun run src/cli.ts find agents --json && bun run src/cli.ts find skills --host agent3md --json"
+dogfood = "bun test test/dogfood.test.ts && bun run src/cli.ts skill route \"find worktrees\" --json && bun run src/cli.ts show skill find-worktrees --json && bun run src/cli.ts open agent.3md --json"
 
 [tasks.spec]
 cmd = "fledge spec check"

@@ -14,6 +14,10 @@ files:
   - src/catalog/skills.ts
   - src/catalog/scan-policy.ts
   - src/catalog/agent3md.ts
+  - src/catalog/show.ts
+  - src/catalog/route.ts
+  - src/catalog/gemini.ts
+  - src/catalog/kimi.ts
 db_tables: []
 depends_on:
   - git
@@ -49,12 +53,21 @@ index cards. Context packs never include session paths or bodies.
 | `findSkills` | Project + user skill catalogs with progressive cards. |
 | `findAgent3mdAgents` | Discover agent.3md / *.3md via @corvidlabs/agent3md (3md). |
 | `findAgent3mdSkills` | Skill planes from agent.3md as progressive cards. |
+| `showAsset` | Progressive body (or metadata) for one card by kind + id/name. |
+| `openPath` | Classify path + capped preview; refuse session jsonl bodies. |
+| `resolveCard` | Resolve id/name/path to a unique IndexCard. |
+| `routeSkills` | Rank skills for a query (agent.3md route + triggers + name). |
+| `tokenize` | agent.3md-compatible word tokens. |
+| `phraseHits` | Trigger phrase match (all words required). |
+| `findGeminiInstructions` | GEMINI.md + ~/.gemini global. |
+| `findGeminiSessions` | Path-only history/projects. |
+| `findKimiSessions` | Path-only workspaces/sessions via workspaces.json. |
 
 ### Structs & Enums
 
 | Type | Description |
 |------|-------------|
-| `HostId` | claude, grok, codex, cursor, git, project, corvid, let, agent3md, unknown. |
+| `HostId` | claude, grok, codex, cursor, gemini, kimi, git, project, corvid, let, agent3md, unknown. |
 | `FindKind` | Closed catalog kinds (worktrees, skills, instructions, sessions, ...). |
 | `FindScope` | project \| user \| all. |
 | `IndexCard` | Progressive disclosure card (no large bodies). |

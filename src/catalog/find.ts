@@ -6,10 +6,17 @@ import { join } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
 import { LetError } from "../errors.ts";
 import { fileBytes, listChildPaths, mtimeMs, pathExists } from "../fs-scan.ts";
-import { claudeHome, claudeProjectDir } from "../paths.ts";
+import {
+  claudeHome,
+  claudeProjectDir,
+  codexHome,
+  cursorHome,
+} from "../paths.ts";
 import { findAgent3mdAgents, findAgent3mdSkills } from "./agent3md.ts";
+import { findGeminiAgents, findGeminiSessions } from "./gemini.ts";
 import { pathCardId } from "./ids.ts";
 import { findInstructions } from "./instructions.ts";
+import { findKimiAgents, findKimiSessions } from "./kimi.ts";
 import { federateWorktrees } from "./merge.ts";
 import { findSkills } from "./skills.ts";
 import type { FindKind, IndexCard } from "./types.ts";
@@ -23,28 +30,49 @@ export type FindResult = {
   truncated: boolean;
 };
 
+function applyLimit(
+  items: IndexCard[],
+  limit: number,
+): { items: IndexCard[]; total: number; truncated: boolean } {
+  const total = items.length;
+  const truncated = total > limit;
+  return {
+    items: truncated ? items.slice(0, limit) : items,
+    total,
+    truncated,
+  };
+}
+
 export async function findAssets(
   kind: FindKind,
   ctx: ScanContext,
   opts: { host?: string; query?: string } = {},
 ): Promise<FindResult> {
   let items: IndexCard[] = [];
-  let total = 0;
-  let truncated = false;
 
   switch (kind) {
     case "worktrees": {
+      // federation already applies limit; re-filter below if host/query set
       const r = federateWorktrees(ctx);
       items = r.cards;
-      total = r.total;
-      truncated = r.truncated;
+      if (!opts.host && !opts.query) {
+        return {
+          kind,
+          scope: ctx.scope,
+          repo_root: ctx.repoRoot,
+          items: r.cards,
+          total: r.total,
+          truncated: r.truncated,
+        };
+      }
+      // expand for filter: re-run with high limit
+      items = federateWorktrees({ ...ctx, limit: 500 }).cards;
       break;
     }
     case "skills": {
-      const r = findSkills(ctx);
-      const a3 = findAgent3mdSkills(ctx);
+      const r = findSkills({ ...ctx, limit: 500 });
+      const a3 = findAgent3mdSkills({ ...ctx, limit: 500 });
       const merged = [...r.cards, ...a3];
-      // re-apply sort: project-local + host + name (findSkills already sorted; concat a3 then sort)
       merged.sort((a, b) => {
         const aLocal = a.scope === "project" ? 0 : 1;
         const bLocal = b.scope === "project" ? 0 : 1;
@@ -56,64 +84,52 @@ export async function findAssets(
         }
         return a.name.localeCompare(b.name);
       });
-      total = merged.length;
-      truncated = total > ctx.limit;
-      items = truncated ? merged.slice(0, ctx.limit) : merged;
+      items = merged;
       break;
     }
     case "instructions": {
       items = findInstructions(ctx);
-      total = items.length;
-      if (total > ctx.limit) {
-        truncated = true;
-        items = items.slice(0, ctx.limit);
-      }
       break;
     }
     case "sessions": {
-      items = findSessions(ctx);
-      total = items.length;
-      if (total > ctx.limit) {
-        truncated = true;
-        items = items.slice(0, ctx.limit);
-      }
+      items = [
+        ...findSessions(ctx),
+        ...findGeminiSessions(ctx),
+        ...findKimiSessions(ctx),
+      ];
       break;
     }
     case "agents": {
       const partial = findPartialKind("agents", ctx);
       const a3 = findAgent3mdAgents(ctx);
-      items = [...a3, ...partial];
-      total = items.length;
-      if (total > ctx.limit) {
-        truncated = true;
-        items = items.slice(0, ctx.limit);
-      }
+      const gem = findGeminiAgents(ctx);
+      const kimiA = findKimiAgents(ctx);
+      items = [...a3, ...partial, ...gem, ...kimiA];
+      break;
+    }
+    case "mcp": {
+      items = [
+        ...findPartialKind("mcp", ctx),
+        ...findGeminiAgents(ctx).filter((c) => c.kind === "mcp"),
+      ];
       break;
     }
     case "commands":
     case "tasks":
     case "memory":
-    case "mcp":
     case "plugins":
     case "workflows":
     case "superskills": {
-      // Minimal stubs for local discoverability — empty or partial
       items = findPartialKind(kind, ctx);
-      total = items.length;
-      if (total > ctx.limit) {
-        truncated = true;
-        items = items.slice(0, ctx.limit);
-      }
       break;
     }
     default:
       throw new LetError("validation", `Unknown kind: ${kind}`, { kind });
   }
 
+  // Filter before limit so --host kimi is not starved by other hosts
   if (opts.host) {
     items = items.filter((c) => c.host === opts.host);
-    total = items.length;
-    truncated = false;
   }
 
   if (opts.query) {
@@ -124,17 +140,16 @@ export async function findAssets(
         .toLowerCase();
       return hay.includes(q);
     });
-    total = items.length;
-    truncated = false;
   }
 
+  const limited = applyLimit(items, ctx.limit);
   return {
     kind,
     scope: ctx.scope,
     repo_root: ctx.repoRoot,
-    items,
-    total,
-    truncated,
+    items: limited.items,
+    total: limited.total,
+    truncated: limited.truncated,
   };
 }
 
@@ -191,11 +206,8 @@ function findSessions(ctx: ScanContext): IndexCard[] {
 
 function findPartialKind(kind: FindKind, ctx: ScanContext): IndexCard[] {
   const cards: IndexCard[] = [];
-  if (!ctx.repoRoot) {
-    return cards;
-  }
 
-  if (kind === "commands") {
+  if (kind === "commands" && ctx.repoRoot) {
     const dir = join(ctx.repoRoot, ".claude", "commands");
     if (pathExists(dir)) {
       for (const child of listChildPaths(dir, ctx.policy)) {
@@ -214,10 +226,20 @@ function findPartialKind(kind: FindKind, ctx: ScanContext): IndexCard[] {
   }
 
   if (kind === "agents") {
-    for (const dir of [
-      join(ctx.repoRoot, ".claude", "agents"),
-      join(claudeHome(), "agents"),
-    ]) {
+    const agentDirs: { dir: string; host: "claude" | "codex" | "cursor" }[] =
+      [];
+    if (ctx.repoRoot) {
+      agentDirs.push({
+        dir: join(ctx.repoRoot, ".claude", "agents"),
+        host: "claude",
+      });
+    }
+    agentDirs.push(
+      { dir: join(claudeHome(), "agents"), host: "claude" },
+      { dir: join(codexHome(), "agents"), host: "codex" },
+      { dir: join(cursorHome(), "agents"), host: "cursor" },
+    );
+    for (const { dir, host } of agentDirs) {
       if (!pathExists(dir)) {
         continue;
       }
@@ -229,11 +251,14 @@ function findPartialKind(kind: FindKind, ctx: ScanContext): IndexCard[] {
       ) {
         continue;
       }
+      if (ctx.scope === "user" && underRepo) {
+        continue;
+      }
       for (const child of listChildPaths(dir, ctx.policy)) {
         cards.push({
           id: pathCardId("agents", child),
           kind: "agents",
-          host: "claude",
+          host,
           name: child.split("/").pop() ?? child,
           path: child,
           scope: underRepo ? "project" : "user",

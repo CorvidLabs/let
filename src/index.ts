@@ -15,6 +15,23 @@ export { buildScanContext } from "./catalog/context-builder.ts";
 export { type FindResult, findAssets } from "./catalog/find.ts";
 export { attributeHost, federateWorktrees } from "./catalog/merge.ts";
 export {
+  phraseHits,
+  type RouteHit,
+  type RouteResult,
+  routeSkills,
+  tokenize,
+} from "./catalog/route.ts";
+export {
+  type AssetBody,
+  MAX_BODY_BYTES,
+  MAX_OPEN_PREVIEW_BYTES,
+  normalizeShowKind,
+  type OpenResult,
+  openPath,
+  resolveCard,
+  showAsset,
+} from "./catalog/show.ts";
+export {
   FIND_KINDS,
   type FindKind,
   type FindScope,
@@ -66,8 +83,11 @@ export {
   codexHome,
   cursorHome,
   encodeClaudeProjectPath,
+  geminiHome,
   grokHome,
   homeDir,
+  kimiHome,
   projectClaudeDir,
+  projectGeminiDir,
   projectLetDir,
 } from "./paths.ts";

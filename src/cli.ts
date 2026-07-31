@@ -5,6 +5,8 @@
 import { buildContext } from "./catalog/context.ts";
 import { buildScanContext } from "./catalog/context-builder.ts";
 import { findAssets } from "./catalog/find.ts";
+import { routeSkills } from "./catalog/route.ts";
+import { openPath, showAsset } from "./catalog/show.ts";
 import {
   FIND_KINDS,
   type FindScope,
@@ -78,20 +80,29 @@ Usage:
   let where [path] [--cwd <path>] [--json]
   let find <kind> [--scope project|user|all] [--host <id>] [--query <text>]
                   [--cwd <path>] [--repo <path>] [--limit N] [--json]
+  let show <kind> <id|name> [--cwd <path>] [--json]
+  let open <path> [--cwd <path>] [--json]
+  let skill route <text> [--host <id>] [--limit N] [--json]
+  let route <text>                 # alias for skill route
   let context [--pack brief|full] [--cwd <path>] [--json]
   let version [--json]
   let help
 
 Kinds: ${FIND_KINDS.join(", ")}
+Show aliases: skill, agent, worktree, instruction, session
 
 Examples:
   let find worktrees --json
-  let find skills --query worktree --json
+  let find skills --host agent3md --json
+  let skill route "find worktrees for this repo" --json
+  let show skill find-worktrees --json
+  let show agent let --json
+  let open ./agent.3md --json
   let where .
   let context --pack brief --json
 
 Federation over relocation — indexes .claude/worktrees, ~/.codex, git, …
-Docs: docs/design.md
+Docs: docs/usage.md
 `;
 }
 
@@ -182,12 +193,55 @@ async function run(): Promise<number> {
       return buildContext(ctx, packRaw);
     }
 
-    if (command === "show" || command === "open") {
-      throw new LetError(
-        "dependency",
-        `${command} lands in PR2. Use find/where/context for now.`,
-        { command, pr: "2" },
-      );
+    if (command === "show") {
+      const kind = parsed.positionals[0];
+      const ref = parsed.positionals[1];
+      if (!kind || !ref) {
+        throw new LetError(
+          "usage",
+          "show requires <kind> <id|name>. Example: let show skill find-worktrees",
+          { kind: kind ?? null, ref: ref ?? null },
+        );
+      }
+      return showAsset(kind, ref, ctx);
+    }
+
+    if (command === "open") {
+      const target = parsed.positionals[0];
+      if (!target) {
+        throw new LetError("usage", "open requires <path>", {});
+      }
+      return openPath(target, ctx);
+    }
+
+    // let skill route <text...>  |  let route <text...>
+    if (command === "skill" || command === "route") {
+      let textParts: string[] = [];
+      if (command === "skill") {
+        const sub = parsed.positionals[0];
+        if (sub !== "route") {
+          throw new LetError(
+            "usage",
+            'Usage: let skill route "<text>"  (or: let route "<text>")',
+            { sub: sub ?? null },
+          );
+        }
+        textParts = parsed.positionals.slice(1);
+      } else {
+        textParts = parsed.positionals;
+      }
+      const text = textParts.join(" ").trim();
+      if (!text) {
+        throw new LetError(
+          "usage",
+          'skill route requires text. Example: let skill route "find worktrees"',
+          {},
+        );
+      }
+      return routeSkills(text, ctx, {
+        host: flagStr(parsed.flags, "host"),
+        limit,
+      });
     }
 
     throw new LetError("usage", `Unknown command: ${command}. Try: let help`, {

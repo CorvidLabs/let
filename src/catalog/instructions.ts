@@ -5,8 +5,9 @@
 import { basename, join } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
 import { mtimeMs, pathExists } from "../fs-scan.ts";
+import { findGeminiInstructions } from "./gemini.ts";
 import { instructionId } from "./ids.ts";
-import type { IndexCard } from "./types.ts";
+import type { HostId, IndexCard } from "./types.ts";
 
 const ROOT_NAMES = [
   "CLAUDE.md",
@@ -16,6 +17,22 @@ const ROOT_NAMES = [
   "GEMINI.md",
   "CODEX.md",
 ];
+
+function hostForInstructionName(name: string): HostId {
+  if (name.startsWith(".cursor") || name === ".cursorrules") {
+    return "cursor";
+  }
+  if (name === "CLAUDE.md") {
+    return "claude";
+  }
+  if (name === "GEMINI.md") {
+    return "gemini";
+  }
+  if (name === "CODEX.md" || name === "AGENTS.md" || name === "AGENT.md") {
+    return "project";
+  }
+  return "project";
+}
 
 export function findInstructions(ctx: ScanContext): IndexCard[] {
   const cards: IndexCard[] = [];
@@ -34,10 +51,7 @@ export function findInstructions(ctx: ScanContext): IndexCard[] {
       cards.push({
         id: instructionId(p),
         kind: "instructions",
-        host:
-          name.startsWith(".cursor") || name === ".cursorrules"
-            ? "cursor"
-            : "project",
+        host: hostForInstructionName(name),
         name,
         path: p,
         scope: "project",
@@ -81,7 +95,24 @@ export function findInstructions(ctx: ScanContext): IndexCard[] {
         });
       }
     }
+
+    // project .gemini dir
+    const geminiDir = join(root, ".gemini");
+    if (pathExists(geminiDir)) {
+      cards.push({
+        id: instructionId(geminiDir),
+        kind: "instructions",
+        host: "gemini",
+        name: ".gemini",
+        path: geminiDir,
+        scope: "project",
+        repo_root: ctx.repoRoot ?? undefined,
+        mtime_ms: mtimeMs(geminiDir),
+      });
+    }
   }
+
+  cards.push(...findGeminiInstructions(ctx));
 
   // dedupe by path
   const seen = new Set<string>();

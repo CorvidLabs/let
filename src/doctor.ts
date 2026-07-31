@@ -9,7 +9,9 @@ import {
   claudeHome,
   codexHome,
   cursorHome,
+  geminiHome,
   grokHome,
+  kimiHome,
   projectClaudeDir,
 } from "./paths.ts";
 
@@ -86,10 +88,24 @@ export function runDoctor(cwd: string = process.cwd()): DoctorReport {
       "shallow scan only",
     ),
     "cursor.worktrees": rootEntry(join(cursorHome(), "worktrees")),
+    "gemini.home": rootEntry(
+      geminiHome(),
+      "GEMINI.md + history + projects.json",
+    ),
+    "gemini.history": rootEntry(
+      join(geminiHome(), "history"),
+      "path-only sessions",
+    ),
+    "kimi.home": rootEntry(kimiHome(), "Kimi Code CLI"),
+    "kimi.sessions": rootEntry(
+      join(kimiHome(), "sessions"),
+      "path-only; matched via workspaces.json",
+    ),
+    "kimi.workspaces": rootEntry(join(kimiHome(), "workspaces.json")),
     "project.claude": rootEntry(projectClaudeDir(cwd)),
     "project.claude.worktrees": rootEntry(
       join(projectClaudeDir(cwd), "worktrees"),
-      "host-owned worktrees — federated by find (PR1b)",
+      "host-owned worktrees — federated by find",
     ),
     "project.let": rootEntry(
       join(cwd, ".let"),

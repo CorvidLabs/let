@@ -9,6 +9,9 @@ Grok Build, Codex, Cursor, Merlin, corvid-agent, private runners).
 let where .                         # what agent stuff is here?
 let find worktrees --json           # .claude/worktrees + ~/.codex + git + …
 let find skills --host agent3md --json
+let skill route "find worktrees" --json
+let show skill find-worktrees --json  # progressive body load
+let open ./agent.3md --json
 let find agents --json              # agent.3md documents
 let context --json
 let doctor --json
@@ -27,9 +30,11 @@ let doctor --json
 
 - **Worktrees** — git seed + Claude / Codex / Cursor / project overlays, deduped by realpath
 - **Skills** — Claude, Grok, Cursor catalogs + **agent.3md skill planes**
-- **Agents** — discovers and validates `agent.3md` via `@corvidlabs/agent3md` (3md)
-- **Instructions** — `CLAUDE.md`, `AGENTS.md`, Cursor rules, …
-- **Dogfood** — this repo ships `agent.3md` and can find itself
+- **Hosts** — Claude, Codex, Cursor, Grok, **Gemini**, **Kimi Code**, agent.3md
+- **Show / open / route** — progressive bodies + skill ranking (sessions stay metadata-only)
+- **Agents** — Claude/Codex/Cursor agent dirs + agent.3md + Gemini antigravity
+- **Instructions** — `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Cursor rules, …
+- **Dogfood** — this repo ships `agent.3md` and can find + show + route itself
 - **JSON-first** — stable envelopes for agents (`--json`)
 
 ## Install (dev)
