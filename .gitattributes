@@ -1,0 +1,3 @@
+# 3md is Markdown along a Z axis. Without this override, GitHub Linguist
+# misclassifies *.3md as Roff (man-page family), which pollutes language stats.
+*.3md linguist-language=Markdown
