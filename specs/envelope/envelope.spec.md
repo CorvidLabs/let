@@ -22,26 +22,16 @@ error share one outer shape so agents can always parse stdout.
 
 | Export | Description |
 |--------|-------------|
+| `LET_VERSION` | Package version string embedded in meta. |
+| `EnvelopeMeta` | `version`, `cwd`, `duration_ms`, optional `adapters` / `truncated` / `total`. |
+| `SuccessEnvelope` | Discriminated success envelope. |
+| `ErrorEnvelope` | Discriminated error envelope with `{ code, message, details }`. |
+| `Envelope` | Union of success and error envelopes. |
 | `baseMeta` | Build `EnvelopeMeta` with version, cwd, and duration from `startedAt`. |
 | `successEnvelope` | Build `{ ok: true, command, data, meta }`. |
 | `errorEnvelope` | Build `{ ok: false, command, error, meta }` from a `LetError`. |
 | `withEnvelope` | Run a sync/async body; always return an envelope, mapping throws via `toLetError`. |
 | `printEnvelope` | Write envelope JSON to stdout. |
-
-### Structs & Enums
-
-| Type | Description |
-|------|-------------|
-| `EnvelopeMeta` | `version`, `cwd`, `duration_ms`, optional `adapters` / `truncated` / `total`. |
-| `SuccessEnvelope` | Discriminated success envelope. |
-| `ErrorEnvelope` | Discriminated error envelope with `{ code, message, details }`. |
-| `Envelope` | Union of success and error envelopes. |
-
-### Constants
-
-| Name | Description |
-|------|-------------|
-| `LET_VERSION` | Package version string embedded in meta. |
 
 ## Invariants
 

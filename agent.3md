@@ -2,27 +2,29 @@
 3md: 1.0
 axis: skill
 agent: let
-persona: host-neutral locator; federates agent assets in place; prefers --json
+persona: host-neutral locator; federates all agent assets into the let standard; prefers --json
 tools: let, git, rg, bun, fledge
 ---
-`let` — universal agent-asset locator. Plane 0 is identity; other planes are
-skills agents can route to. Federation over relocation: never move host paths.
+`let` — universal agent-asset locator (the let standard). Plane 0 is identity;
+other planes are skills any host agent can route to. Federation over relocation:
+never move host paths. Prefer agent.3md / 3md for portable skill catalogs.
 
 @plane z=0 label="let" kind=identity
 # let
 
 Operating rules:
 
-- Index host assets in place (`.claude/worktrees`, `~/.codex/worktrees`, …).
-- Prefer `let find` / `let where` / `let context` with `--json`.
+- Index host assets in place (Claude, Grok, Codex, Cursor, Gemini, Kimi, agent.3md).
+- Prefer `let find` / `let where` / `let context` / `let show` / `let skill route` with `--json`.
 - Progressive disclosure: list cards first; load bodies only when needed.
-- Never load session transcript bodies.
+- Never load session transcript or memory dump bodies (path-only / metadata).
+- Treat `agent.3md` and `*.3md` as first-class agents and skill planes.
 - Prefer fledge: `fledge lanes run verify`.
 
 @plane z=1 label="find-worktrees" kind=skill triggers="worktree, worktrees, find worktrees, parallel agents" inputs="cwd:string?" tool="let find worktrees --cwd {cwd} --json"
 # Skill: find-worktrees
 
-List federated worktrees for a repo (Claude, Codex, git, project). Fill {cwd}
+List federated worktrees for a repo (Claude, Codex, git, project, Grok DB). Fill {cwd}
 with a project path (or `.`).
 
 @plane z=2 label="where" kind=skill triggers="where, where am i, classify path" inputs="path:string" tool="let where {path} --json"
@@ -33,19 +35,59 @@ Classify a path: host, branch, repo root, sibling worktrees, instructions.
 @plane z=3 label="find-skills" kind=skill triggers="skills, find skills, list skills" inputs="query:string?" tool="let find skills --query {query} --json"
 # Skill: find-skills
 
-List skill cards across Claude, Grok, Cursor, and agent.3md. Optional {query}.
+List skill cards across Claude, Grok, Cursor, Codex, let, and agent.3md planes. Optional {query}.
 
-@plane z=4 label="context" kind=skill triggers="context, context pack, project context" inputs="cwd:string?" tool="let context --cwd {cwd} --json"
+@plane z=4 label="find-agents" kind=skill triggers="agents, find agents, list agents, agent.3md" inputs="query:string?" tool="let find agents --query {query} --json"
+# Skill: find-agents
+
+List agent documents: agent.3md / *.3md first, then Claude/Codex/Cursor/Grok/Gemini/Kimi agent roots.
+
+@plane z=5 label="find-commands" kind=skill triggers="commands, slash commands, find commands" inputs="query:string?" tool="let find commands --query {query} --json"
+# Skill: find-commands
+
+List slash-commands from Claude (.claude/commands) and Cursor (.cursor/commands).
+
+@plane z=6 label="find-memory" kind=skill triggers="memory, memtrace, find memory, recall" inputs="query:string?" tool="let find memory --query {query} --json"
+# Skill: find-memory
+
+Path-only memory index: Grok memtrace, Codex memories, Gemini brain/knowledge, Kimi history, .let/memory.
+
+@plane z=7 label="find-sessions" kind=skill triggers="sessions, find sessions, chats, history" inputs="query:string?" tool="let find sessions --query {query} --json"
+# Skill: find-sessions
+
+Path-only session cards across Claude, Grok, Codex, Cursor, Gemini, Kimi. Never loads transcripts.
+
+@plane z=8 label="find-plugins" kind=skill triggers="plugins, find plugins, marketplaces" inputs="query:string?" tool="let find plugins --query {query} --json"
+# Skill: find-plugins
+
+Claude and Codex plugin installs (path-only registry + install paths).
+
+@plane z=9 label="find-mcp" kind=skill triggers="mcp, find mcp, model context protocol, mcp config" inputs="query:string?" tool="let find mcp --query {query} --json"
+# Skill: find-mcp
+
+MCP config files across project (.mcp.json), Claude, Cursor, Codex, Gemini.
+
+@plane z=10 label="find-tasks" kind=skill triggers="tasks, plans, find tasks, cursor plans" inputs="query:string?" tool="let find tasks --query {query} --json"
+# Skill: find-tasks
+
+Claude task dirs (path-only) and Cursor plan markdown (showable).
+
+@plane z=11 label="context" kind=skill triggers="context, context pack, project context" inputs="cwd:string?" tool="let context --cwd {cwd} --json"
 # Skill: context
 
 Brief context pack (instructions, worktree sample, skills). No sessions.
 
-@plane z=5 label="doctor" kind=skill triggers="doctor, health, roots, diagnose" tool="let doctor --json"
+@plane z=12 label="doctor" kind=skill triggers="doctor, health, roots, diagnose" tool="let doctor --json"
 # Skill: doctor
 
-Host root health and config trust summary.
+Host root health and config trust summary for every adapter.
 
-@plane z=6 label="route" kind=skill triggers="route, which skill, pick skill, match skill" inputs="text:string" tool="let skill route {text} --json"
+@plane z=13 label="route" kind=skill triggers="route, which skill, pick skill, match skill" inputs="text:string" tool="let skill route {text} --json"
 # Skill: route
 
-Rank skills for a natural-language request. Fill {text}, then show the top skill.
+Rank skills for a natural-language request (agent.3md route first, then triggers). Fill {text}, then show the top skill.
+
+@plane z=14 label="show" kind=skill triggers="show, open skill, load skill, skill body" inputs="kind:string, ref:string" tool="let show {kind} {ref} --json"
+# Skill: show
+
+Progressive disclosure: load one card body (skills/agents/instructions) or metadata (sessions/memory).

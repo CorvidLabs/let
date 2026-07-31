@@ -42,6 +42,14 @@ const KIND_ALIASES: Record<string, FindKind> = {
   tasks: "tasks",
   command: "commands",
   commands: "commands",
+  memory: "memory",
+  mcp: "mcp",
+  plugin: "plugins",
+  plugins: "plugins",
+  workflow: "workflows",
+  workflows: "workflows",
+  superskill: "superskills",
+  superskills: "superskills",
 };
 
 export function normalizeShowKind(raw: string): FindKind {
@@ -174,7 +182,9 @@ function loadTextBody(
     return {};
   }
   if (bytes > maxBytes) {
-    const text = readTextFile(path, ctx.policy, maxBytes);
+    const text = readTextFile(path, ctx.policy, maxBytes, {
+      allowPartial: true,
+    });
     return {
       body: text ?? undefined,
       truncated_body: true,
@@ -185,12 +195,40 @@ function loadTextBody(
   return { body: text ?? undefined, truncated_body: false, bytes };
 }
 
-function isSessionLikePath(path: string): boolean {
+/** Paths that must never yield transcript/store bodies via open/show fallback. */
+export function isSessionLikePath(path: string): boolean {
+  const p = path.replace(/\\/g, "/");
   return (
-    path.endsWith(".jsonl") ||
-    path.includes("/sessions/") ||
-    path.includes("/.claude/projects/")
+    p.endsWith(".jsonl") ||
+    p.endsWith(".sqlite") ||
+    p.endsWith(".sqlite-wal") ||
+    p.endsWith(".sqlite-shm") ||
+    p.includes("/sessions/") ||
+    p.includes("/.claude/projects/") ||
+    p.includes("/.claude/tasks/") ||
+    p.includes("/.cursor/chats/") ||
+    p.includes("/.grok/sessions/") ||
+    p.includes("/.grok/memtrace/") ||
+    p.includes("/.gemini/history/") ||
+    p.includes("/.gemini/antigravity/conversations/") ||
+    p.includes("/.kimi-code/sessions/") ||
+    p.includes("/.kimi-code/user-history/") ||
+    p.includes("/.codex/sessions/") ||
+    p.includes("/.codex/archived_sessions/") ||
+    p.includes("/.let/sessions/") ||
+    p.includes("/.let/memory/")
   );
+}
+
+function isPathOnlyCard(card: IndexCard): boolean {
+  if (card.meta?.path_only === true) {
+    return true;
+  }
+  const note = card.meta?.note?.toString() ?? "";
+  if (note.toLowerCase().includes("secret")) {
+    return true;
+  }
+  return false;
 }
 
 export async function showAsset(
@@ -201,8 +239,9 @@ export async function showAsset(
   const kind = normalizeShowKind(kindRaw);
   const card = await resolveCard(kind, ref, ctx);
 
-  // Sessions / tasks: metadata only
-  if (kind === "sessions" || kind === "tasks") {
+  // Sessions / tasks / memory: metadata only (no transcript or recall dump)
+  // Cursor plans (tasks with source cursor.plans) allow body — handled below.
+  if (kind === "sessions" || kind === "memory") {
     return {
       ...card,
       body: undefined,
@@ -214,11 +253,20 @@ export async function showAsset(
     };
   }
 
-  // Host configs that may contain secrets (kimi config, etc.)
-  if (
-    card.meta?.path_only === true ||
-    card.meta?.note?.toString().includes("secrets")
-  ) {
+  if (kind === "tasks" && card.meta?.source !== "cursor.plans") {
+    return {
+      ...card,
+      body: undefined,
+      payload: {
+        bytes: fileBytes(card.path) ?? card.meta?.bytes,
+        mtime_ms: mtimeMs(card.path) ?? card.mtime_ms,
+        path_only: true,
+      },
+    };
+  }
+
+  // MCP / plugins / secret-bearing configs
+  if (isPathOnlyCard(card)) {
     return {
       ...card,
       body: undefined,
@@ -381,18 +429,45 @@ export async function openPath(
     });
   }
 
-  // Try match against known catalogs
-  const kinds: FindKind[] = [
-    "skills",
-    "agents",
-    "instructions",
-    "worktrees",
-    "commands",
-  ];
+  // Prefer agents before skills for .3md: many skill planes share one path
+  // and would conflict if skills is resolved first.
+  const is3md = rp.endsWith(".3md");
+  const kinds: FindKind[] = is3md
+    ? [
+        "agents",
+        "skills",
+        "instructions",
+        "worktrees",
+        "commands",
+        "mcp",
+        "plugins",
+        "workflows",
+        "superskills",
+        "memory",
+        "tasks",
+      ]
+    : [
+        "skills",
+        "agents",
+        "instructions",
+        "worktrees",
+        "commands",
+        "mcp",
+        "plugins",
+        "workflows",
+        "superskills",
+        "memory",
+        "tasks",
+      ];
   for (const kind of kinds) {
     try {
       const card = await resolveCard(kind, rp, ctx);
-      if (kind === "sessions" || isSessionLikePath(card.path)) {
+      if (
+        kind === "sessions" ||
+        kind === "memory" ||
+        isSessionLikePath(card.path) ||
+        isPathOnlyCard(card)
+      ) {
         return {
           path: rp,
           kind,
@@ -404,7 +479,9 @@ export async function openPath(
             mtime_ms: mtimeMs(rp),
             path_only: true,
           },
-          refused: "session_or_jsonl",
+          refused: isPathOnlyCard(card)
+            ? "path_only_or_secrets"
+            : "session_or_jsonl",
         };
       }
       if (kind === "worktrees") {
@@ -415,6 +492,23 @@ export async function openPath(
           host: card.host,
           card,
           payload: shown.payload ?? {},
+        };
+      }
+      // agent.3md document: identity + skill catalog (not raw full file dump)
+      if (kind === "agents" && card.host === "agent3md") {
+        const shown = await showAsset("agents", card.id, ctx);
+        const preview = shown.body?.slice(0, MAX_OPEN_PREVIEW_BYTES);
+        return {
+          path: rp,
+          kind,
+          host: card.host,
+          card,
+          body: preview,
+          payload: {
+            ...(shown.payload ?? {}),
+            preview_bytes: preview?.length ?? 0,
+            full_via: `let show agents ${card.id}`,
+          },
         };
       }
       if (kind === "skills" && card.host === "agent3md") {
@@ -451,8 +545,8 @@ export async function openPath(
         continue;
       }
       if (err instanceof LetError && err.code === "conflict") {
-        // path matched multiple — still open as file if safe
-        break;
+        // path matched multiple — try next kind (e.g. skills share agent.3md path)
+        continue;
       }
       throw err;
     }

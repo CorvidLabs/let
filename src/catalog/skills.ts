@@ -26,6 +26,12 @@ function hostForSkillRoot(root: string, ctx: ScanContext): HostId {
   if (root.includes("/.cursor/") || root.includes("skills-cursor")) {
     return "cursor";
   }
+  if (root.includes("/.codex/")) {
+    return "codex";
+  }
+  if (root.includes("/.let/")) {
+    return "let";
+  }
   if (ctx.repoRoot && root.startsWith(ctx.repoRoot)) {
     return "project";
   }

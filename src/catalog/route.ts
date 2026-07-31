@@ -54,31 +54,50 @@ export type RouteResult = {
   top?: RouteHit;
 };
 
+/**
+ * Name/description fallback score.
+ * Rejects single-token description noise (e.g. "find" matching every skill
+ * that mentions "find" in a long description).
+ */
 function nameScore(query: string, card: IndexCard): number {
   const q = query.toLowerCase();
   const name = card.name.toLowerCase();
   if (name === q) {
     return 3;
   }
-  if (name.includes(q) || q.includes(name)) {
+  if (
+    name.includes(q) ||
+    (q.length >= 3 && q.includes(name) && name.length >= 3)
+  ) {
     return 2;
   }
   const tokens = tokenize(query);
   const nameTokens = new Set(tokenize(card.name));
-  let n = 0;
+  let nameHits = 0;
   for (const t of tokens) {
     if (nameTokens.has(t)) {
-      n++;
+      nameHits++;
     }
   }
-  if (n > 0) {
-    return n;
+  if (nameHits > 0) {
+    return nameHits;
   }
+  // Description: significant tokens only (len >= 3); require all of them
+  // when the query has 1–2 sig tokens, or a majority when longer.
   const desc = (card.description ?? "").toLowerCase();
-  if (desc && tokens.some((t) => desc.includes(t))) {
-    return 1;
+  if (!desc) {
+    return 0;
   }
-  return 0;
+  const significant = tokens.filter((t) => t.length >= 3);
+  if (significant.length === 0) {
+    return 0;
+  }
+  const descHits = significant.filter((t) => desc.includes(t));
+  if (significant.length <= 2) {
+    return descHits.length === significant.length ? 1 : 0;
+  }
+  const need = Math.ceil(significant.length * 0.6);
+  return descHits.length >= need ? 1 : 0;
 }
 
 /**
@@ -213,9 +232,24 @@ export async function routeSkills(
     }
   }
 
+  const sourceRank = (s: RouteHit["source"]): number => {
+    if (s === "agent3md") {
+      return 0;
+    }
+    if (s === "triggers") {
+      return 1;
+    }
+    return 2;
+  };
+
   const sorted = [...best.values()].sort((a, b) => {
     if (b.score !== a.score) {
       return b.score - a.score;
+    }
+    // Prefer agent.3md / triggers over weak name matches at equal score
+    const src = sourceRank(a.source) - sourceRank(b.source);
+    if (src !== 0) {
+      return src;
     }
     // project-local first
     const aLocal = a.skill.scope === "project" ? 0 : 1;

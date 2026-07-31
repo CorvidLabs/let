@@ -8,3 +8,6 @@ coverage/
 
 # CorvidLabs trust toolchain
 augur.json
+
+# spec-sync 5.x auto-fix backups
+.specsync/backup-fix/

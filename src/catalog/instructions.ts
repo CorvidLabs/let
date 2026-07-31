@@ -5,6 +5,8 @@
 import { basename, join } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
 import { mtimeMs, pathExists } from "../fs-scan.ts";
+import { findClaudeUserInstructions } from "./claude.ts";
+import { findCodexInstructions } from "./codex.ts";
 import { findGeminiInstructions } from "./gemini.ts";
 import { instructionId } from "./ids.ts";
 import type { HostId, IndexCard } from "./types.ts";
@@ -76,7 +78,7 @@ export function findInstructions(ctx: ScanContext): IndexCard[] {
       });
     }
 
-    // .claude settings as weak instruction signals
+    // .claude settings: path-only (may embed env/hooks/MCP secrets)
     for (const rel of [
       ".claude/settings.json",
       ".claude/settings.local.json",
@@ -92,6 +94,10 @@ export function findInstructions(ctx: ScanContext): IndexCard[] {
           scope: "project",
           repo_root: ctx.repoRoot ?? undefined,
           mtime_ms: mtimeMs(p),
+          meta: {
+            path_only: true,
+            note: "settings may contain secrets — show/open metadata-only",
+          },
         });
       }
     }
@@ -113,6 +119,29 @@ export function findInstructions(ctx: ScanContext): IndexCard[] {
   }
 
   cards.push(...findGeminiInstructions(ctx));
+  cards.push(...findClaudeUserInstructions(ctx));
+  cards.push(...findCodexInstructions(ctx));
+
+  // project .let instructions pointer
+  if (ctx.repoRoot) {
+    for (const rel of [".let/AGENTS.md", ".let/INSTRUCTIONS.md"]) {
+      const p = join(ctx.repoRoot, rel);
+      if (!pathExists(p)) {
+        continue;
+      }
+      cards.push({
+        id: instructionId(p),
+        kind: "instructions",
+        host: "let",
+        name: rel,
+        path: p,
+        scope: "project",
+        repo_root: ctx.repoRoot,
+        mtime_ms: mtimeMs(p),
+        meta: { standard: "let" },
+      });
+    }
+  }
 
   // dedupe by path
   const seen = new Set<string>();

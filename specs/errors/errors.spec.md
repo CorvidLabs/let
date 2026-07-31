@@ -21,15 +21,10 @@ mapping.
 
 | Export | Description |
 |--------|-------------|
-| `isLetError` | Type guard for `LetError` instances. |
-| `toLetError` | Map unknown throwables into `LetError` (identity for LetError). |
-
-### Structs & Enums
-
-| Type | Description |
-|------|-------------|
 | `LetErrorCode` | Closed set: usage, validation, not_found, conflict, unsafe, dependency, internal. |
 | `LetError` | Error subclass with `code`, `details`, `exitCode`, `toJSON()`. |
+| `isLetError` | Type guard for `LetError` instances. |
+| `toLetError` | Map unknown throwables into `LetError` (identity for LetError). |
 
 ### Exit code mapping
 
@@ -78,3 +73,4 @@ Then it equals "internal"
 | Version | Date | Changes |
 |---------|------|---------|
 | 1 | 2026-07-30 | Initial error contract. |
+| 2 | 2026-07-31 | Full export documentation for spec-sync 5.2. |

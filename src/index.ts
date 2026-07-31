@@ -5,6 +5,7 @@
 export {
   findAgent3mdAgents,
   findAgent3mdSkills,
+  listAgent3mdFiles,
 } from "./catalog/agent3md.ts";
 export {
   buildContext,

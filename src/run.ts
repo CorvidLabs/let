@@ -175,7 +175,7 @@ export async function runLet(
       );
     }
 
-    const cwd = flagStr(parsed.flags, "cwd") ?? defaults.cwd;
+    let cwd = flagStr(parsed.flags, "cwd") ?? defaults.cwd;
     const repo = flagStr(parsed.flags, "repo");
     const scopeRaw = flagStr(parsed.flags, "scope") ?? "project";
     if (!isFindScope(scopeRaw)) {
@@ -190,6 +190,16 @@ export async function runLet(
       throw new LetError("validation", `--limit must be a positive number`, {
         limit: limitRaw,
       });
+    }
+
+    // where [path]: when no explicit --cwd, scope the scan to the target path's
+    // repo (linked worktrees resolve to the parent via git common-dir).
+    if (
+      command === "where" &&
+      !flagStr(parsed.flags, "cwd") &&
+      parsed.positionals[0]
+    ) {
+      cwd = parsed.positionals[0];
     }
 
     const ctx = buildScanContext({ cwd, repo, scope, limit });

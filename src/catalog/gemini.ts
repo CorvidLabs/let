@@ -242,3 +242,36 @@ export function findGeminiAgents(ctx: ScanContext): IndexCard[] {
 
   return cards;
 }
+
+/** Antigravity brain / knowledge — path-only memory (user|all only). */
+export function findGeminiMemory(ctx: ScanContext): IndexCard[] {
+  const cards: IndexCard[] = [];
+  if (ctx.scope !== "user" && ctx.scope !== "all") {
+    return cards;
+  }
+  for (const rel of [
+    "antigravity/brain",
+    "antigravity/knowledge",
+    "antigravity/conversations",
+  ]) {
+    const dir = join(geminiHome(), rel);
+    if (!pathExists(dir)) {
+      continue;
+    }
+    cards.push({
+      id: pathCardId("memory", dir),
+      kind: "memory",
+      host: "gemini",
+      name: rel.split("/").pop() ?? rel,
+      path: dir,
+      scope: "user",
+      mtime_ms: mtimeMs(dir),
+      meta: {
+        path_only: true,
+        source: `gemini.${rel}`,
+        bytes: fileBytes(dir),
+      },
+    });
+  }
+  return cards;
+}

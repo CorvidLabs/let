@@ -8,11 +8,15 @@ Grok Build, Codex, Cursor, Merlin, corvid-agent, private runners).
 ```bash
 let where .                         # what agent stuff is here?
 let find worktrees --json           # .claude/worktrees + ~/.codex + git + …
-let find skills --host agent3md --json
+let find skills --json              # Claude + Grok + Cursor + agent.3md planes
+let find agents --json              # agent.3md + host agent dirs
+let find memory --json              # memtrace / codex / gemini / .let (path-only)
+let find sessions --json            # all hosts, path-only
+let find plugins --json
+let find mcp --json
 let skill route "find worktrees" --json
 let show skill find-worktrees --json  # progressive body load
 let open ./agent.3md --json
-let find agents --json              # agent.3md documents
 let context --json
 let doctor --json
 ```
@@ -23,18 +27,23 @@ let doctor --json
 | | |
 |--|--|
 | **Repo** | https://github.com/CorvidLabs/let |
-| **Package** | `@corvidlabs/let` (not on npm yet) |
-| **Stack** | Bun · fledge · spec-sync · Trust CI · agent.3md |
+| **Package** | `@corvidlabs/let` **0.1.0** (GitHub; npm after MCP read path) |
+| **Stack** | Bun · fledge · spec-sync 5.2 · Trust CI · agent.3md |
+| **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 
 ## Features
 
-- **Worktrees** — git seed + Claude / Codex / Cursor / project overlays, deduped by realpath
-- **Skills** — Claude, Grok, Cursor catalogs + **agent.3md skill planes**
-- **Hosts** — Claude, Codex, Cursor, Grok, **Gemini**, **Kimi Code**, agent.3md
-- **Show / open / route** — progressive bodies + skill ranking (sessions stay metadata-only)
-- **Agents** — Claude/Codex/Cursor agent dirs + agent.3md + Gemini antigravity
-- **Instructions** — `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Cursor rules, …
-- **Dogfood** — this repo ships `agent.3md` and can find + show + route itself
+- **The let standard** — one closed kind set for every host; cards first, bodies on demand
+- **Worktrees** — git seed + Claude / Codex / Cursor / project / Grok DB, deduped by realpath
+- **Skills** — Claude, Grok, Cursor, Codex, let catalogs + **agent.3md skill planes**
+- **Agents** — agent.3md / `*.3md` first-class + Claude/Codex/Cursor/Grok/Gemini/Kimi roots
+- **Commands** — Claude + Cursor slash-commands (project + user)
+- **Sessions / memory** — path-only federation (Claude, Grok, Codex, Cursor, Gemini, Kimi)
+- **Plugins / MCP / tasks** — Claude plugins & tasks, Cursor plans, MCP configs across hosts
+- **Workflows / superskills** — let-native + Grok workflow roots when present
+- **Show / open / route** — progressive bodies + agent.3md-first skill ranking
+- **Hosts** — Claude, Codex, Cursor, Grok, Gemini, Kimi Code, agent.3md, let
+- **Dogfood** — ships `agent.3md` and can find + show + route itself
 - **JSON-first** — stable envelopes for agents (`--json`)
 
 ## Install

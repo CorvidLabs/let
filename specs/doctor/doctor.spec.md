@@ -22,14 +22,9 @@ defaults. Used by `let doctor --json`.
 
 | Export | Description |
 |--------|-------------|
-| `runDoctor` | Produce a DoctorReport for a cwd (checks + roots + config summary). |
-
-### Structs & Enums
-
-| Type | Description |
-|------|-------------|
 | `DoctorCheck` | id, ok, detail, optional path. |
 | `DoctorReport` | version, cwd, checks, roots map, config summary. |
+| `runDoctor` | Produce a DoctorReport for a cwd (checks + roots + config summary). |
 
 ## Invariants
 
