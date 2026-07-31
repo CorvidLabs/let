@@ -4,7 +4,12 @@
 
 import { resolve } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
-import { type LetConfig, loadConfig, DEFAULT_LIMIT, MAX_LIMIT } from "../config.ts";
+import {
+  DEFAULT_LIMIT,
+  type LetConfig,
+  loadConfig,
+  MAX_LIMIT,
+} from "../config.ts";
 import { gitCommonDir, gitToplevel, safeRealpath } from "../git.ts";
 import { homeDir } from "../paths.ts";
 import { DEFAULT_SCAN_POLICY, type ScanPolicy } from "./scan-policy.ts";
@@ -20,9 +25,11 @@ export type BuildContextOptions = {
 };
 
 export function buildScanContext(opts: BuildContextOptions = {}): ScanContext {
-  const cwd = safeRealpath(opts.cwd ?? process.cwd()) ?? resolve(opts.cwd ?? process.cwd());
+  const cwd =
+    safeRealpath(opts.cwd ?? process.cwd()) ??
+    resolve(opts.cwd ?? process.cwd());
   const loaded = opts.config ? null : loadConfig(cwd);
-  const config = opts.config ?? loaded!.config;
+  const config = opts.config ?? loaded?.config;
 
   // Prefer explicit --repo; else git toplevel (works from worktree → main via common-dir logic:
   // show-toplevel returns the worktree root, but we want parent repo root for attribution.

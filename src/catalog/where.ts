@@ -2,13 +2,12 @@
  * `let where [path]` — classify cwd and list related assets.
  */
 
-import { basename } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
 import { pathExists } from "../fs-scan.ts";
 import { gitBranch, safeRealpath } from "../git.ts";
+import { worktreeId } from "./ids.ts";
 import { findInstructions } from "./instructions.ts";
 import { attributeHost, federateWorktrees } from "./merge.ts";
-import { worktreeId } from "./ids.ts";
 import type { HostId, IndexCard, WorktreeCard } from "./types.ts";
 
 export type WhereResult = {
@@ -27,12 +26,8 @@ export type WhereResult = {
   };
 };
 
-export function whereAmI(
-  ctx: ScanContext,
-  targetPath?: string,
-): WhereResult {
-  const path =
-    safeRealpath(targetPath ?? ctx.cwd) ?? targetPath ?? ctx.cwd;
+export function whereAmI(ctx: ScanContext, targetPath?: string): WhereResult {
+  const path = safeRealpath(targetPath ?? ctx.cwd) ?? targetPath ?? ctx.cwd;
 
   const host = attributeHost(path, ctx);
   const branch = pathExists(path) ? (gitBranch(path) ?? undefined) : undefined;
@@ -59,5 +54,3 @@ export function whereAmI(
     },
   };
 }
-
-void basename;

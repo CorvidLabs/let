@@ -109,9 +109,7 @@ export function listChildPaths(
       }
       const rp = safeRealpath(child) ?? child;
       out.push(rp);
-    } catch {
-      continue;
-    }
+    } catch {}
   }
   return out;
 }

@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ScanContext } from "../src/adapters/types.ts";
 import { buildScanContext } from "../src/catalog/context-builder.ts";
 import { worktreeId } from "../src/catalog/ids.ts";
 import { attributeHost, federateWorktrees } from "../src/catalog/merge.ts";
-import { DEFAULT_CONFIG } from "../src/config.ts";
 import { DEFAULT_SCAN_POLICY } from "../src/catalog/scan-policy.ts";
-import type { ScanContext } from "../src/adapters/types.ts";
+import { DEFAULT_CONFIG } from "../src/config.ts";
 
 describe("worktreeId", () => {
   test("stable and host-free", () => {
@@ -32,9 +32,9 @@ describe("attributeHost", () => {
       policy: DEFAULT_SCAN_POLICY,
       limit: 100,
     };
-    expect(
-      attributeHost(join(repo, ".claude", "worktrees", "wf_1"), ctx),
-    ).toBe("claude");
+    expect(attributeHost(join(repo, ".claude", "worktrees", "wf_1"), ctx)).toBe(
+      "claude",
+    );
     expect(attributeHost(join(repo, ".worktrees", "feat"), ctx)).toBe(
       "project",
     );

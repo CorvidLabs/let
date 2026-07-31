@@ -5,3 +5,6 @@ bun.lockb
 .DS_Store
 *.log
 coverage/
+
+# CorvidLabs trust toolchain
+augur.json

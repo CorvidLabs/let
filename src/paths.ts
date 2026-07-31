@@ -47,13 +47,15 @@ export function absPath(path: string, cwd: string = process.cwd()): string {
  */
 export function encodeClaudeProjectPath(absolutePath: string): string {
   const normalized = absolutePath.replace(/\\/g, "/");
-  const body = normalized.startsWith("/")
-    ? normalized.slice(1)
-    : normalized;
+  const body = normalized.startsWith("/") ? normalized.slice(1) : normalized;
   const encoded = body.replaceAll("/", "-").replaceAll("_", "-");
   return normalized.startsWith("/") ? `-${encoded}` : encoded;
 }
 
 export function claudeProjectDir(absoluteRepoPath: string): string {
-  return join(claudeHome(), "projects", encodeClaudeProjectPath(absoluteRepoPath));
+  return join(
+    claudeHome(),
+    "projects",
+    encodeClaudeProjectPath(absoluteRepoPath),
+  );
 }

@@ -6,12 +6,7 @@ import { Database } from "bun:sqlite";
 import { readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
-import { DEFAULT_LIMIT } from "../config.ts";
-import {
-  isDirectory,
-  isImmediateChild,
-  pathExists,
-} from "../fs-scan.ts";
+import { isDirectory, isImmediateChild, pathExists } from "../fs-scan.ts";
 import {
   gitBranch,
   gitCommonDir,
@@ -23,10 +18,7 @@ import {
 } from "../git.ts";
 import { grokHome } from "../paths.ts";
 import { worktreeId } from "./ids.ts";
-import {
-  externalWorktreeRoots,
-  inRepoWorktreeBases,
-} from "./scan-policy.ts";
+import { externalWorktreeRoots, inRepoWorktreeBases } from "./scan-policy.ts";
 import type { HostId, WorktreeCard, WorktreeStatus } from "./types.ts";
 
 export function attributeHost(path: string, ctx: ScanContext): HostId {
@@ -218,7 +210,9 @@ function seedFromGit(ctx: ScanContext): Map<string, WorktreeCard> {
   return cards;
 }
 
-function listHostCandidates(ctx: ScanContext): { path: string; host: HostId }[] {
+function listHostCandidates(
+  ctx: ScanContext,
+): { path: string; host: HostId }[] {
   const out: { path: string; host: HostId }[] = [];
   const max = ctx.policy.maxEntriesPerRoot;
 

@@ -1,12 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  DEFAULT_LIMIT,
-  MAX_LIMIT,
-  loadConfig,
-} from "../src/config.ts";
+import { DEFAULT_LIMIT, loadConfig, MAX_LIMIT } from "../src/config.ts";
 
 describe("loadConfig", () => {
   test("defaults when no files", () => {

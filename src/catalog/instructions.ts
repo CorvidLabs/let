@@ -34,7 +34,10 @@ export function findInstructions(ctx: ScanContext): IndexCard[] {
       cards.push({
         id: instructionId(p),
         kind: "instructions",
-        host: name.startsWith(".cursor") || name === ".cursorrules" ? "cursor" : "project",
+        host:
+          name.startsWith(".cursor") || name === ".cursorrules"
+            ? "cursor"
+            : "project",
         name,
         path: p,
         scope: "project",
@@ -60,7 +63,10 @@ export function findInstructions(ctx: ScanContext): IndexCard[] {
     }
 
     // .claude settings as weak instruction signals
-    for (const rel of [".claude/settings.json", ".claude/settings.local.json"]) {
+    for (const rel of [
+      ".claude/settings.json",
+      ".claude/settings.local.json",
+    ]) {
       const p = join(root, rel);
       if (pathExists(p)) {
         cards.push({

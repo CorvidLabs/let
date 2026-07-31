@@ -4,12 +4,7 @@
 
 import { join } from "node:path";
 import type { LetConfig } from "../config.ts";
-import {
-  claudeHome,
-  codexHome,
-  cursorHome,
-  grokHome,
-} from "../paths.ts";
+import { claudeHome, codexHome, cursorHome, grokHome } from "../paths.ts";
 
 export type ScanPolicy = {
   followSymlinks: "never" | "within-root";
@@ -43,7 +38,11 @@ export function inRepoWorktreeBases(
   config: LetConfig,
 ): WorktreeBase[] {
   return [
-    { host: "claude", path: join(repoRoot, ".claude", "worktrees"), maxDepth: 1 },
+    {
+      host: "claude",
+      path: join(repoRoot, ".claude", "worktrees"),
+      maxDepth: 1,
+    },
     { host: "project", path: join(repoRoot, ".worktrees"), maxDepth: 1 },
     {
       host: "let",
@@ -90,6 +89,8 @@ export function skillRoots(repoRoot: string | null): {
 export function isDeniedBasename(name: string, policy: ScanPolicy): boolean {
   const lower = name.toLowerCase();
   return policy.denyFileBasenames.some(
-    (d) => d.toLowerCase() === lower || (d.startsWith("*.") && lower.endsWith(d.slice(1))),
+    (d) =>
+      d.toLowerCase() === lower ||
+      (d.startsWith("*.") && lower.endsWith(d.slice(1))),
   );
 }

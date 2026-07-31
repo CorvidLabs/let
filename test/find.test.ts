@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { buildScanContext } from "../src/catalog/context-builder.ts";
 import { buildContext } from "../src/catalog/context.ts";
+import { buildScanContext } from "../src/catalog/context-builder.ts";
 import { findAssets } from "../src/catalog/find.ts";
 import { whereAmI } from "../src/catalog/where.ts";
 

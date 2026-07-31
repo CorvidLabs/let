@@ -2,23 +2,16 @@
  * `let find <kind>` — federated catalog query.
  */
 
+import { join } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
 import { LetError } from "../errors.ts";
-import { pathExists } from "../fs-scan.ts";
-import { safeRealpath } from "../git.ts";
-import {
-  claudeHome,
-  claudeProjectDir,
-  encodeClaudeProjectPath,
-} from "../paths.ts";
-import { join } from "node:path";
-import { listChildPaths, mtimeMs, fileBytes } from "../fs-scan.ts";
+import { fileBytes, listChildPaths, mtimeMs, pathExists } from "../fs-scan.ts";
+import { claudeHome, claudeProjectDir } from "../paths.ts";
 import { pathCardId } from "./ids.ts";
 import { findInstructions } from "./instructions.ts";
 import { federateWorktrees } from "./merge.ts";
 import { findSkills } from "./skills.ts";
 import type { FindKind, IndexCard } from "./types.ts";
-import { DEFAULT_LIMIT } from "../config.ts";
 
 export type FindResult = {
   kind: FindKind;
@@ -101,12 +94,7 @@ export async function findAssets(
   if (opts.query) {
     const q = opts.query.toLowerCase();
     items = items.filter((c) => {
-      const hay = [
-        c.name,
-        c.description ?? "",
-        c.path,
-        ...(c.triggers ?? []),
-      ]
+      const hay = [c.name, c.description ?? "", c.path, ...(c.triggers ?? [])]
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
@@ -209,7 +197,11 @@ function findPartialKind(kind: FindKind, ctx: ScanContext): IndexCard[] {
         continue;
       }
       const underRepo = Boolean(ctx.repoRoot && dir.startsWith(ctx.repoRoot));
-      if (ctx.scope === "project" && !underRepo && !ctx.config.find.include_user_skills) {
+      if (
+        ctx.scope === "project" &&
+        !underRepo &&
+        !ctx.config.find.include_user_skills
+      ) {
         continue;
       }
       for (const child of listChildPaths(dir, ctx.policy)) {
@@ -220,7 +212,7 @@ function findPartialKind(kind: FindKind, ctx: ScanContext): IndexCard[] {
           name: child.split("/").pop() ?? child,
           path: child,
           scope: underRepo ? "project" : "user",
-          repo_root: underRepo ? ctx.repoRoot ?? undefined : undefined,
+          repo_root: underRepo ? (ctx.repoRoot ?? undefined) : undefined,
           mtime_ms: mtimeMs(child),
         });
       }
@@ -229,8 +221,3 @@ function findPartialKind(kind: FindKind, ctx: ScanContext): IndexCard[] {
 
   return cards;
 }
-
-// silence unused import if encode unused
-void encodeClaudeProjectPath;
-void safeRealpath;
-void DEFAULT_LIMIT;

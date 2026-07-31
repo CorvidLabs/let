@@ -63,10 +63,7 @@ export type LoadedConfig = {
   projectPath: string | null;
 };
 
-function deepMerge(
-  base: LetConfig,
-  overlay: Partial<LetConfig>,
-): LetConfig {
+function deepMerge(base: LetConfig, overlay: Partial<LetConfig>): LetConfig {
   return {
     find: { ...base.find, ...overlay.find },
     scan: { ...base.scan, ...overlay.scan },

@@ -63,7 +63,8 @@ export function runDoctor(cwd: string = process.cwd()): DoctorReport {
   checks.push({
     id: "git",
     ok: gitVersion !== null,
-    detail: gitVersion ?? "git not found on PATH (required for worktree federation)",
+    detail:
+      gitVersion ?? "git not found on PATH (required for worktree federation)",
   });
 
   const bunVersion = Bun.version;
@@ -80,14 +81,20 @@ export function runDoctor(cwd: string = process.cwd()): DoctorReport {
     "grok.home": rootEntry(grokHome()),
     "grok.skills": rootEntry(join(grokHome(), "bundled", "skills")),
     "grok.worktrees_db": rootEntry(join(grokHome(), "worktrees.db")),
-    "codex.worktrees": rootEntry(join(codexHome(), "worktrees"), "shallow scan only"),
+    "codex.worktrees": rootEntry(
+      join(codexHome(), "worktrees"),
+      "shallow scan only",
+    ),
     "cursor.worktrees": rootEntry(join(cursorHome(), "worktrees")),
     "project.claude": rootEntry(projectClaudeDir(cwd)),
     "project.claude.worktrees": rootEntry(
       join(projectClaudeDir(cwd), "worktrees"),
       "host-owned worktrees — federated by find (PR1b)",
     ),
-    "project.let": rootEntry(join(cwd, ".let"), "optional; not required for find"),
+    "project.let": rootEntry(
+      join(cwd, ".let"),
+      "optional; not required for find",
+    ),
   };
 
   for (const [id, root] of Object.entries(roots)) {
@@ -135,7 +142,8 @@ export function runDoctor(cwd: string = process.cwd()): DoctorReport {
   checks.push({
     id: "find.ready",
     ok: true,
-    detail: "find/where/context available (federated worktrees, skills, instructions)",
+    detail:
+      "find/where/context available (federated worktrees, skills, instructions)",
   });
 
   return {

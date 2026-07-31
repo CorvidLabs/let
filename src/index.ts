@@ -2,45 +2,59 @@
  * @corvidlabs/let — public library exports.
  */
 
-export { LET_VERSION } from "./envelope.ts";
 export {
-  type Envelope,
-  type EnvelopeMeta,
-  type ErrorEnvelope,
-  type SuccessEnvelope,
-  baseMeta,
-  errorEnvelope,
-  successEnvelope,
-  withEnvelope,
-} from "./envelope.ts";
+  buildContext,
+  type ContextPack,
+  type ContextResult,
+} from "./catalog/context.ts";
+export { buildScanContext } from "./catalog/context-builder.ts";
+export { type FindResult, findAssets } from "./catalog/find.ts";
+export { attributeHost, federateWorktrees } from "./catalog/merge.ts";
 export {
-  LetError,
-  type LetErrorCode,
-  isLetError,
-  toLetError,
-} from "./errors.ts";
-export {
+  FIND_KINDS,
   type FindKind,
   type FindScope,
   type HostId,
   type IndexCard,
-  type WorktreeCard,
-  type WorktreeStatus,
-  FIND_KINDS,
   isFindKind,
   isFindScope,
+  type WorktreeCard,
+  type WorktreeStatus,
 } from "./catalog/types.ts";
+export { type WhereResult, whereAmI } from "./catalog/where.ts";
 export {
   DEFAULT_CONFIG,
   DEFAULT_LIMIT,
-  MAX_LIMIT,
   type LetConfig,
   type LoadedConfig,
   loadConfig,
+  MAX_LIMIT,
   projectConfigPath,
   userConfigPath,
 } from "./config.ts";
 export { type DoctorCheck, type DoctorReport, runDoctor } from "./doctor.ts";
+export {
+  baseMeta,
+  type Envelope,
+  type EnvelopeMeta,
+  type ErrorEnvelope,
+  errorEnvelope,
+  LET_VERSION,
+  type SuccessEnvelope,
+  successEnvelope,
+  withEnvelope,
+} from "./envelope.ts";
+export {
+  isLetError,
+  LetError,
+  type LetErrorCode,
+  toLetError,
+} from "./errors.ts";
+export {
+  gitCommonDir,
+  gitToplevel,
+  gitWorktreeList,
+} from "./git.ts";
 export {
   absPath,
   claudeHome,
@@ -53,17 +67,3 @@ export {
   projectClaudeDir,
   projectLetDir,
 } from "./paths.ts";
-export { buildScanContext } from "./catalog/context-builder.ts";
-export { findAssets, type FindResult } from "./catalog/find.ts";
-export { whereAmI, type WhereResult } from "./catalog/where.ts";
-export {
-  buildContext,
-  type ContextPack,
-  type ContextResult,
-} from "./catalog/context.ts";
-export { federateWorktrees, attributeHost } from "./catalog/merge.ts";
-export {
-  gitWorktreeList,
-  gitToplevel,
-  gitCommonDir,
-} from "./git.ts";

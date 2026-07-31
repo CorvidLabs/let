@@ -11,8 +11,6 @@ describe("encodeClaudeProjectPath", () => {
     expect(encoded).toContain("quill");
     // Double dash for path segment that was `_CorvidLabs` under Development/
     // Claude uses `-` for every `/`; `_` stays.
-    expect(encoded).toBe(
-      "-Users-leif-Development--CorvidLabs-quill",
-    );
+    expect(encoded).toBe("-Users-leif-Development--CorvidLabs-quill");
   });
 });

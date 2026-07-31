@@ -42,6 +42,11 @@ export class LetError extends Error {
         return 4;
       case "internal":
         return 10;
+      default: {
+        const _exhaustive: never = this.code;
+        void _exhaustive;
+        return 10;
+      }
     }
   }
 

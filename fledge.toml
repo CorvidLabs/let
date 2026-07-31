@@ -1,10 +1,26 @@
-# fledge.toml — project task definitions
-# Docs: https://github.com/CorvidLabs/fledge#task-runner
+# fledge.toml — CorvidLabs lifecycle for @corvidlabs/let
+# Docs: https://github.com/CorvidLabs/fledge
+#
+# Single quality gate:
+#   fledge lanes run verify
 
 [tasks]
-dev = "bun run src/cli.ts"
-test = "bun test"
-lint = "bun run lint"
+test = "bun install --frozen-lockfile && bun test"
+lint = "bunx biome check src/ test/"
 build = "bun run build"
-ci = "bun test && bun run lint"
+format-check = "bunx biome format src/ test/"
 doctor = "bun run src/cli.ts doctor --json"
+# Library smoke: CLI still loads after build artifacts change
+cli-smoke = "bun run src/cli.ts version --json && bun run src/cli.ts doctor --json"
+
+[tasks.spec]
+cmd = "fledge spec check"
+description = "spec-sync: module specs match tracked source files"
+
+[lanes.verify]
+description = "Single CI quality gate: test, lint, build, cli-smoke, specs"
+steps = ["test", "lint", "build", "cli-smoke", "spec"]
+
+[lanes.ci]
+description = "Alias for verify"
+steps = ["test", "lint", "build", "cli-smoke", "spec"]

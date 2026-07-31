@@ -80,8 +80,7 @@ export function findSkills(ctx: ScanContext): {
   truncated: boolean;
 } {
   const roots = skillRoots(ctx.repoRoot);
-  const wantProject =
-    ctx.scope === "project" || ctx.scope === "all";
+  const wantProject = ctx.scope === "project" || ctx.scope === "all";
   const wantUser =
     ctx.scope === "user" ||
     ctx.scope === "all" ||
@@ -97,7 +96,9 @@ export function findSkills(ctx: ScanContext): {
     const host = hostForSkillRoot(root, ctx);
     if (isDirectory(root)) {
       // children: skill dirs or .md files
-      const children = listChildPaths(root, ctx.policy, { directoriesOnly: false });
+      const children = listChildPaths(root, ctx.policy, {
+        directoriesOnly: false,
+      });
       for (const child of children) {
         const card = cardFromSkillPath(child, host, ctx, underRepo);
         if (card && !seen.has(card.id)) {

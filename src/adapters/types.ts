@@ -2,7 +2,6 @@
  * Host adapter contract.
  */
 
-import type { LetConfig } from "../config.ts";
 import type { ScanPolicy } from "../catalog/scan-policy.ts";
 import type {
   FindKind,
@@ -10,6 +9,7 @@ import type {
   HostId,
   IndexCard,
 } from "../catalog/types.ts";
+import type { LetConfig } from "../config.ts";
 
 export type ScanContext = {
   cwd: string;

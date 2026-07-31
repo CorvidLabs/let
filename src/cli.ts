@@ -2,14 +2,14 @@
  * `let` CLI — doctor, find, where, context, version, help.
  */
 
-import { buildScanContext } from "./catalog/context-builder.ts";
 import { buildContext } from "./catalog/context.ts";
+import { buildScanContext } from "./catalog/context-builder.ts";
 import { findAssets } from "./catalog/find.ts";
 import {
   FIND_KINDS,
+  type FindScope,
   isFindKind,
   isFindScope,
-  type FindScope,
 } from "./catalog/types.ts";
 import { whereAmI } from "./catalog/where.ts";
 import { runDoctor } from "./doctor.ts";
@@ -62,7 +62,10 @@ function parseArgs(argv: string[]): ParsedArgs {
   };
 }
 
-function flagStr(flags: Map<string, string | boolean>, key: string): string | undefined {
+function flagStr(
+  flags: Map<string, string | boolean>,
+  key: string,
+): string | undefined {
   const v = flags.get(key);
   return typeof v === "string" ? v : undefined;
 }
@@ -94,8 +97,7 @@ Docs: docs/design.md
 
 async function run(): Promise<number> {
   const parsed = parseArgs(process.argv.slice(2));
-  const json =
-    parsed.flags.has("json") || process.env.LET_JSON === "1";
+  const json = parsed.flags.has("json") || process.env.LET_JSON === "1";
 
   if (
     !json &&
@@ -188,11 +190,9 @@ async function run(): Promise<number> {
       );
     }
 
-    throw new LetError(
-      "usage",
-      `Unknown command: ${command}. Try: let help`,
-      { command },
-    );
+    throw new LetError("usage", `Unknown command: ${command}. Try: let help`, {
+      command,
+    });
   });
 
   // Attach truncation meta when present

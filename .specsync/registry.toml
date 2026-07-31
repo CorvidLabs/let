@@ -1,0 +1,11 @@
+[registry]
+name = "let"
+
+[specs]
+envelope = "specs/envelope/envelope.spec.md"
+errors = "specs/errors/errors.spec.md"
+config = "specs/config/config.spec.md"
+catalog = "specs/catalog/catalog.spec.md"
+git = "specs/git/git.spec.md"
+doctor = "specs/doctor/doctor.spec.md"
+paths = "specs/paths/paths.spec.md"
