@@ -13,6 +13,7 @@ files:
   - src/catalog/instructions.ts
   - src/catalog/skills.ts
   - src/catalog/scan-policy.ts
+  - src/catalog/agent3md.ts
 db_tables: []
 depends_on:
   - git
@@ -46,6 +47,8 @@ index cards. Context packs never include session paths or bodies.
 | `buildScanContext` | Build ScanContext from cwd/repo/scope/limit. |
 | `findInstructions` | Discover CLAUDE.md, AGENTS.md, cursor rules, etc. |
 | `findSkills` | Project + user skill catalogs with progressive cards. |
+| `findAgent3mdAgents` | Discover agent.3md / *.3md via @corvidlabs/agent3md (3md). |
+| `findAgent3mdSkills` | Skill planes from agent.3md as progressive cards. |
 
 ### Structs & Enums
 

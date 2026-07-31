@@ -20,9 +20,19 @@ Universal agent-asset locator + dynamic workbed for multi-host coding agents
 - `specs/` - module contracts (spec-sync)
 - `docs/design.md` - architecture + PR plan
 
+## Dogfood
+
+This repo ships `agent.3md`. After changes:
+
+```bash
+fledge run dogfood
+let find agents --json
+let find skills --host agent3md --json
+```
+
 ## Current milestone
 
-PR1b local: `find` / `where` / `context` work.
+Federated find/where/context + agent.3md adapter + dogfood.
 Verify with `./bin/let find worktrees --cwd <repo> --json`.
 
 <!-- CorvidLabs trust toolchain: BEGIN (managed, do not edit inside) -->

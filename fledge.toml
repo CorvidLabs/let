@@ -12,15 +12,17 @@ format-check = "bunx biome format src/ test/"
 doctor = "bun run src/cli.ts doctor --json"
 # Library smoke: CLI still loads after build artifacts change
 cli-smoke = "bun run src/cli.ts version --json && bun run src/cli.ts doctor --json"
+# Self-discovery: instructions + agent.3md via the CLI
+dogfood = "bun test test/dogfood.test.ts && bun run src/cli.ts find agents --json && bun run src/cli.ts find skills --host agent3md --json"
 
 [tasks.spec]
 cmd = "fledge spec check"
 description = "spec-sync: module specs match tracked source files"
 
 [lanes.verify]
-description = "Single CI quality gate: test, lint, build, cli-smoke, specs"
-steps = ["test", "lint", "build", "cli-smoke", "spec"]
+description = "Single CI quality gate: test, lint, build, cli-smoke, dogfood, specs"
+steps = ["test", "lint", "build", "cli-smoke", "dogfood", "spec"]
 
 [lanes.ci]
 description = "Alias for verify"
-steps = ["test", "lint", "build", "cli-smoke", "spec"]
+steps = ["test", "lint", "build", "cli-smoke", "dogfood", "spec"]

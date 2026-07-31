@@ -1,7 +1,7 @@
 {
   "name": "@corvidlabs/let",
   "version": "0.1.0",
-  "description": "Universal agent-asset locator + dynamic workbed for multi-host coding agents",
+  "description": "Find any agent asset for any agent — host-neutral locator for skills, worktrees, instructions, and agent.3md",
   "type": "module",
   "license": "MIT",
   "bin": {
@@ -35,5 +35,8 @@
   },
   "engines": {
     "bun": ">=1.1.0"
+  },
+  "dependencies": {
+    "@corvidlabs/agent3md": "^1.0.0"
   }
 }

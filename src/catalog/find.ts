@@ -7,6 +7,7 @@ import type { ScanContext } from "../adapters/types.ts";
 import { LetError } from "../errors.ts";
 import { fileBytes, listChildPaths, mtimeMs, pathExists } from "../fs-scan.ts";
 import { claudeHome, claudeProjectDir } from "../paths.ts";
+import { findAgent3mdAgents, findAgent3mdSkills } from "./agent3md.ts";
 import { pathCardId } from "./ids.ts";
 import { findInstructions } from "./instructions.ts";
 import { federateWorktrees } from "./merge.ts";
@@ -41,9 +42,23 @@ export async function findAssets(
     }
     case "skills": {
       const r = findSkills(ctx);
-      items = r.cards;
-      total = r.total;
-      truncated = r.truncated;
+      const a3 = findAgent3mdSkills(ctx);
+      const merged = [...r.cards, ...a3];
+      // re-apply sort: project-local + host + name (findSkills already sorted; concat a3 then sort)
+      merged.sort((a, b) => {
+        const aLocal = a.scope === "project" ? 0 : 1;
+        const bLocal = b.scope === "project" ? 0 : 1;
+        if (aLocal !== bLocal) {
+          return aLocal - bLocal;
+        }
+        if (a.host !== b.host) {
+          return a.host.localeCompare(b.host);
+        }
+        return a.name.localeCompare(b.name);
+      });
+      total = merged.length;
+      truncated = total > ctx.limit;
+      items = truncated ? merged.slice(0, ctx.limit) : merged;
       break;
     }
     case "instructions": {
@@ -64,7 +79,17 @@ export async function findAssets(
       }
       break;
     }
-    case "agents":
+    case "agents": {
+      const partial = findPartialKind("agents", ctx);
+      const a3 = findAgent3mdAgents(ctx);
+      items = [...a3, ...partial];
+      total = items.length;
+      if (total > ctx.limit) {
+        truncated = true;
+        items = items.slice(0, ctx.limit);
+      }
+      break;
+    }
     case "commands":
     case "tasks":
     case "memory":

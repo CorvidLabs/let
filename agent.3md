@@ -1,0 +1,46 @@
+---
+3md: 1.0
+axis: skill
+agent: let
+persona: host-neutral locator; federates agent assets in place; prefers --json
+tools: let, git, rg, bun, fledge
+---
+`let` — universal agent-asset locator. Plane 0 is identity; other planes are
+skills agents can route to. Federation over relocation: never move host paths.
+
+@plane z=0 label="let" kind=identity
+# let
+
+Operating rules:
+
+- Index host assets in place (`.claude/worktrees`, `~/.codex/worktrees`, …).
+- Prefer `let find` / `let where` / `let context` with `--json`.
+- Progressive disclosure: list cards first; load bodies only when needed.
+- Never load session transcript bodies.
+- Prefer fledge: `fledge lanes run verify`.
+
+@plane z=1 label="find-worktrees" kind=skill triggers="worktree, worktrees, find worktrees, parallel agents" inputs="cwd:string?" tool="let find worktrees --cwd {cwd} --json"
+# Skill: find-worktrees
+
+List federated worktrees for a repo (Claude, Codex, git, project). Fill {cwd}
+with a project path (or `.`).
+
+@plane z=2 label="where" kind=skill triggers="where, where am i, classify path" inputs="path:string" tool="let where {path} --json"
+# Skill: where
+
+Classify a path: host, branch, repo root, sibling worktrees, instructions.
+
+@plane z=3 label="find-skills" kind=skill triggers="skills, find skills, list skills" inputs="query:string?" tool="let find skills --query {query} --json"
+# Skill: find-skills
+
+List skill cards across Claude, Grok, Cursor, and agent.3md. Optional {query}.
+
+@plane z=4 label="context" kind=skill triggers="context, context pack, project context" inputs="cwd:string?" tool="let context --cwd {cwd} --json"
+# Skill: context
+
+Brief context pack (instructions, worktree sample, skills). No sessions.
+
+@plane z=5 label="doctor" kind=skill triggers="doctor, health, roots, diagnose" tool="let doctor --json"
+# Skill: doctor
+
+Host root health and config trust summary.

@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "@corvidlabs/let",
+      "dependencies": {
+        "@corvidlabs/agent3md": "^1.0.0",
+      },
       "devDependencies": {
         "@biomejs/biome": "latest",
         "@types/bun": "latest",
@@ -28,6 +31,8 @@
     "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@2.5.6", "", { "os": "win32", "cpu": "arm64" }, "sha512-tDGshcm6BdkZOCGnTDX0Y8/U4IfBSlnUU7T56nNDuPEfed+aHg+u8G36NB43fJVl0Os6+QURXIE1yuD7AaEofA=="],
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.5.6", "", { "os": "win32", "cpu": "x64" }, "sha512-WN05KwXnTO/2J45RQPvzZMXf7tZUIofHoR35xIPfCo7pQ2RFidxI8sfb5mGsaTxdMmEOzHzOPRCdA5/fCpc7xQ=="],
+
+    "@corvidlabs/agent3md": ["@corvidlabs/agent3md@1.0.0", "", {}, "sha512-C15KzHmMdekIe0Ogvedxo+Syu+cGcx+VQ9jfC0qBDDywCM1BW8Htz2xUfM+oJgWdBlxvUA03CQYTi2FSaELRjQ=="],
 
     "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
