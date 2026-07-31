@@ -27,8 +27,9 @@ let doctor --json
 | | |
 |--|--|
 | **Repo** | https://github.com/CorvidLabs/let |
-| **Package** | `@corvidlabs/let` (not on npm yet) |
-| **Stack** | Bun · fledge · spec-sync · Trust CI · agent.3md |
+| **Package** | `@corvidlabs/let` **0.1.0** (GitHub; npm after MCP read path) |
+| **Stack** | Bun · fledge · spec-sync 5.2 · Trust CI · agent.3md |
+| **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 
 ## Features
 

@@ -32,9 +32,10 @@ let find skills --host agent3md --json
 
 ## Current milestone
 
-Let standard federation: all FindKinds across Claude/Grok/Codex/Cursor/Gemini/Kimi
-+ agent.3md first-class (find/show/route) + dogfood.
-Verify with `./bin/let find memory --json` and `./bin/let find agents --host agent3md --json`.
+**0.1.0 locator release candidate:** federated find/where/context/show/route across
+Claude/Grok/Codex/Cursor/Gemini/Kimi + agent.3md first-class + security path_only.
+Verify: `fledge lanes run verify` and `./bin/let doctor --json`.
+Next after tag: MCP read tools (0.2), then workbed writes.
 
 <!-- CorvidLabs trust toolchain: BEGIN (managed, do not edit inside) -->
 ## CorvidLabs trust toolchain (standing rules)
