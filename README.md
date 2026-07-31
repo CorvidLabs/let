@@ -37,15 +37,36 @@ let doctor --json
 - **Dogfood** — this repo ships `agent.3md` and can find + show + route itself
 - **JSON-first** — stable envelopes for agents (`--json`)
 
-## Install (dev)
+## Install
+
+### Via fledge (recommended for CorvidLabs projects)
+
+```bash
+fledge plugins install CorvidLabs/let
+# or from a local checkout:
+# fledge plugins install /path/to/let --force
+
+fledge let doctor --json
+fledge let find worktrees --json
+fledge let where .
+```
+
+Any project that already uses fledge can install `let` the same way as
+`fledge-plugin-memory` / `fledge-plugin-github`. Agents then call `fledge let …`
+without a separate PATH setup.
+
+### Standalone (any host: Claude, Codex, Cursor, Kimi, …)
 
 ```bash
 git clone https://github.com/CorvidLabs/let
 cd let
 bun install
-bun link
+bun link          # or: ./bin/let
 let doctor --json
 ```
+
+If the shell `let` builtin shadows the binary, use `./bin/let` or
+`bun run src/cli.ts`.
 
 ## Docs
 

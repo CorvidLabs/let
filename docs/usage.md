@@ -1,12 +1,26 @@
 # Usage
 
-## Install (dev)
+## Install
+
+### fledge plugin (CorvidLabs projects)
+
+```bash
+fledge plugins install CorvidLabs/let
+fledge let find worktrees --json
+fledge let where .
+fledge let skill route "find worktrees" --json
+```
+
+Uses the same fledge-v1 plugin protocol as other CorvidLabs plugins. Default
+`--cwd` is the fledge project root when omitted.
+
+### Standalone CLI
 
 ```bash
 git clone https://github.com/CorvidLabs/let
-cd let
-bun install
-bun link    # optional: `let` on PATH
+cd let && bun install && bun link
+let doctor --json
+# or: ./bin/let doctor --json
 ```
 
 ## Commands

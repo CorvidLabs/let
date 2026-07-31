@@ -6,9 +6,9 @@ while [ -L "$SOURCE" ]; do
   SOURCE="$(readlink "$SOURCE")"
   [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
 done
-ROOT="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+PLUGIN_DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
 if ! command -v bun >/dev/null 2>&1; then
   echo "error: bun is required to run let (https://bun.sh)" >&2
   exit 1
 fi
-exec bun run "$ROOT/src/cli.ts" "$@"
+exec bun run "$PLUGIN_DIR/src/fledge-plugin.ts" "$@"

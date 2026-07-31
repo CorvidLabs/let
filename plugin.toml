@@ -1,0 +1,24 @@
+[plugin]
+name = "let"
+version = "0.1.0"
+description = "Find any agent asset for any agent — worktrees, skills, sessions, agent.3md across Claude, Codex, Cursor, Grok, Gemini, Kimi"
+author = "CorvidLabs"
+license = "MIT"
+protocol = "fledge-v1"
+
+# Install: fledge plugins install CorvidLabs/let
+# Usage:   fledge let find worktrees --json
+#          fledge let where .
+#          fledge let skill route "…" --json
+[[commands]]
+name = "let"
+description = "Universal agent-asset locator (find / where / show / route / doctor)"
+binary = "bin/fledge-let"
+
+[hooks]
+build = "hooks/build.sh"
+
+[capabilities]
+exec = true
+store = false
+metadata = true
