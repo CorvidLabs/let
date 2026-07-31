@@ -18,6 +18,14 @@ files:
   - src/catalog/route.ts
   - src/catalog/gemini.ts
   - src/catalog/kimi.ts
+  - src/catalog/claude.ts
+  - src/catalog/grok.ts
+  - src/catalog/codex.ts
+  - src/catalog/cursor.ts
+  - src/catalog/let-assets.ts
+  - src/catalog/mcp.ts
+  - src/catalog/scope.ts
+  - src/catalog/card-factory.ts
 db_tables: []
 depends_on:
   - git
@@ -28,9 +36,12 @@ depends_on:
 
 ## Purpose
 
-Federated discovery of agent assets across hosts. Worktrees are merged by
-realpath (git seeds, host overlays). Skills and instructions are progressive
-index cards. Context packs never include session paths or bodies.
+Federated discovery of agent assets across hosts into the **let standard**:
+one closed kind set, host-neutral IndexCards, progressive disclosure.
+Worktrees are merged by realpath (git seeds, host overlays). Skills,
+instructions, agents, commands, plugins, MCP, tasks, memory, and workflows
+are progressive index cards. agent.3md / 3md is first-class.
+Context packs never include session paths or bodies.
 
 ## Public API
 
@@ -49,10 +60,11 @@ index cards. Context packs never include session paths or bodies.
 | `whereAmI` | Classify a path; related siblings/instructions; sessions always []. |
 | `buildContext` | brief/full pack; sessions always empty. |
 | `buildScanContext` | Build ScanContext from cwd/repo/scope/limit. |
-| `findInstructions` | Discover CLAUDE.md, AGENTS.md, cursor rules, etc. |
+| `findInstructions` | Discover CLAUDE.md, AGENTS.md, cursor rules, host globals, etc. |
 | `findSkills` | Project + user skill catalogs with progressive cards. |
 | `findAgent3mdAgents` | Discover agent.3md / *.3md via @corvidlabs/agent3md (3md). |
 | `findAgent3mdSkills` | Skill planes from agent.3md as progressive cards. |
+| `listAgent3mdFiles` | Absolute paths of discovered agent.3md documents. |
 | `showAsset` | Progressive body (or metadata) for one card by kind + id/name. |
 | `openPath` | Classify path + capped preview; refuse session jsonl bodies. |
 | `resolveCard` | Resolve id/name/path to a unique IndexCard. |
@@ -61,7 +73,20 @@ index cards. Context packs never include session paths or bodies.
 | `phraseHits` | Trigger phrase match (all words required). |
 | `findGeminiInstructions` | GEMINI.md + ~/.gemini global. |
 | `findGeminiSessions` | Path-only history/projects. |
+| `findGeminiMemory` | Antigravity brain/knowledge path-only. |
 | `findKimiSessions` | Path-only workspaces/sessions via workspaces.json. |
+| `findKimiMemory` | Path-only user-history. |
+| `findMcpConfigs` | Federated MCP config paths across hosts. |
+| `findClaudeCommands` | Project + user .claude/commands. |
+| `findClaudePlugins` | installed_plugins + marketplace/cache path cards. |
+| `findClaudeTasks` | ~/.claude/tasks path-only. |
+| `findGrokSessions` | URL-encoded project session dirs path-only. |
+| `findGrokMemory` | ~/.grok/memtrace path-only. |
+| `findCodexSessions` | Shallow ~/.codex/sessions path-only. |
+| `findCursorSessions` | ~/.cursor/chats path-only. |
+| `findCursorTasks` | ~/.cursor/plans (showable markdown). |
+| `findLetMemory` | .let/memory and ~/.let/memory. |
+| `findLetSuperskills` | .let/superskills TOML/md/3md. |
 
 ### Structs & Enums
 
@@ -94,6 +119,9 @@ index cards. Context packs never include session paths or bodies.
 6. `scope=user|all` does not apply belongsToRepo filter on host candidates.
 7. Card lists honor limit; set truncated + total when clipped.
 8. Session cards are path-only (no transcript bodies).
+9. Memory cards are path-only; `show memory` never dumps store contents.
+10. agent.3md skill cards carry `meta.format=agent.3md` and `meta.z`.
+11. Every FindKind is implemented (no empty stub kinds that always return []).
 
 ## Behavioral Examples
 
@@ -135,3 +163,4 @@ Then sessions is [] and worktrees.sample is capped
 | Version | Date | Changes |
 |---------|------|---------|
 | 1 | 2026-07-30 | Federated find/where/context (PR1b). |
+| 2 | 2026-07-31 | Full host federation: memory/plugins/mcp/tasks/commands; agent.3md first-class. |

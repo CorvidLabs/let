@@ -42,6 +42,14 @@ const KIND_ALIASES: Record<string, FindKind> = {
   tasks: "tasks",
   command: "commands",
   commands: "commands",
+  memory: "memory",
+  mcp: "mcp",
+  plugin: "plugins",
+  plugins: "plugins",
+  workflow: "workflows",
+  workflows: "workflows",
+  superskill: "superskills",
+  superskills: "superskills",
 };
 
 export function normalizeShowKind(raw: string): FindKind {
@@ -201,8 +209,9 @@ export async function showAsset(
   const kind = normalizeShowKind(kindRaw);
   const card = await resolveCard(kind, ref, ctx);
 
-  // Sessions / tasks: metadata only
-  if (kind === "sessions" || kind === "tasks") {
+  // Sessions / tasks / memory: metadata only (no transcript or recall dump)
+  // Cursor plans (tasks with source cursor.plans) allow body — handled below.
+  if (kind === "sessions" || kind === "memory") {
     return {
       ...card,
       body: undefined,
@@ -214,7 +223,19 @@ export async function showAsset(
     };
   }
 
-  // Host configs that may contain secrets (kimi config, etc.)
+  if (kind === "tasks" && card.meta?.source !== "cursor.plans") {
+    return {
+      ...card,
+      body: undefined,
+      payload: {
+        bytes: fileBytes(card.path) ?? card.meta?.bytes,
+        mtime_ms: mtimeMs(card.path) ?? card.mtime_ms,
+        path_only: true,
+      },
+    };
+  }
+
+  // MCP / plugins with path_only or secrets notes
   if (
     card.meta?.path_only === true ||
     card.meta?.note?.toString().includes("secrets")
@@ -381,14 +402,36 @@ export async function openPath(
     });
   }
 
-  // Try match against known catalogs
-  const kinds: FindKind[] = [
-    "skills",
-    "agents",
-    "instructions",
-    "worktrees",
-    "commands",
-  ];
+  // Prefer agents before skills for .3md: many skill planes share one path
+  // and would conflict if skills is resolved first.
+  const is3md = rp.endsWith(".3md");
+  const kinds: FindKind[] = is3md
+    ? [
+        "agents",
+        "skills",
+        "instructions",
+        "worktrees",
+        "commands",
+        "mcp",
+        "plugins",
+        "workflows",
+        "superskills",
+        "memory",
+        "tasks",
+      ]
+    : [
+        "skills",
+        "agents",
+        "instructions",
+        "worktrees",
+        "commands",
+        "mcp",
+        "plugins",
+        "workflows",
+        "superskills",
+        "memory",
+        "tasks",
+      ];
   for (const kind of kinds) {
     try {
       const card = await resolveCard(kind, rp, ctx);
@@ -415,6 +458,23 @@ export async function openPath(
           host: card.host,
           card,
           payload: shown.payload ?? {},
+        };
+      }
+      // agent.3md document: identity + skill catalog (not raw full file dump)
+      if (kind === "agents" && card.host === "agent3md") {
+        const shown = await showAsset("agents", card.id, ctx);
+        const preview = shown.body?.slice(0, MAX_OPEN_PREVIEW_BYTES);
+        return {
+          path: rp,
+          kind,
+          host: card.host,
+          card,
+          body: preview,
+          payload: {
+            ...(shown.payload ?? {}),
+            preview_bytes: preview?.length ?? 0,
+            full_via: `let show agents ${card.id}`,
+          },
         };
       }
       if (kind === "skills" && card.host === "agent3md") {
@@ -451,8 +511,8 @@ export async function openPath(
         continue;
       }
       if (err instanceof LetError && err.code === "conflict") {
-        // path matched multiple — still open as file if safe
-        break;
+        // path matched multiple — try next kind (e.g. skills share agent.3md path)
+        continue;
       }
       throw err;
     }

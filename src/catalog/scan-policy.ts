@@ -4,7 +4,13 @@
 
 import { join } from "node:path";
 import type { LetConfig } from "../config.ts";
-import { claudeHome, codexHome, cursorHome, grokHome } from "../paths.ts";
+import {
+  claudeHome,
+  codexHome,
+  cursorHome,
+  grokHome,
+  homeDir,
+} from "../paths.ts";
 
 export type ScanPolicy = {
   followSymlinks: "never" | "within-root";
@@ -77,7 +83,11 @@ export function skillRoots(repoRoot: string | null): {
     project.push(
       join(repoRoot, ".claude", "skills"),
       join(repoRoot, ".grok", "skills"),
+      join(repoRoot, ".cursor", "skills"),
+      join(repoRoot, ".cursor", "skills-cursor"),
+      join(repoRoot, ".let", "skills"),
       join(repoRoot, "skills"),
+      join(repoRoot, ".agents", "skills"),
     );
   }
   const user = [
@@ -85,6 +95,9 @@ export function skillRoots(repoRoot: string | null): {
     join(grokHome(), "bundled", "skills"),
     join(grokHome(), "skills"),
     join(cursorHome(), "skills-cursor"),
+    join(cursorHome(), "skills"),
+    join(codexHome(), "skills"),
+    join(homeDir(), ".let", "skills"),
   ];
   return { project, user };
 }

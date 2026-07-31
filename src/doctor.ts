@@ -11,6 +11,7 @@ import {
   cursorHome,
   geminiHome,
   grokHome,
+  homeDir,
   kimiHome,
   projectClaudeDir,
 } from "./paths.ts";
@@ -79,14 +80,29 @@ export function runDoctor(cwd: string = process.cwd()): DoctorReport {
   const roots = {
     "claude.home": rootEntry(claudeHome()),
     "claude.skills": rootEntry(join(claudeHome(), "skills")),
+    "claude.agents": rootEntry(join(claudeHome(), "agents")),
+    "claude.plugins": rootEntry(join(claudeHome(), "plugins")),
+    "claude.tasks": rootEntry(join(claudeHome(), "tasks"), "path-only"),
     "claude.projects": rootEntry(join(claudeHome(), "projects")),
     "grok.home": rootEntry(grokHome()),
     "grok.skills": rootEntry(join(grokHome(), "bundled", "skills")),
+    "grok.sessions": rootEntry(join(grokHome(), "sessions"), "path-only"),
+    "grok.memtrace": rootEntry(
+      join(grokHome(), "memtrace"),
+      "path-only memory",
+    ),
     "grok.worktrees_db": rootEntry(join(grokHome(), "worktrees.db")),
+    "codex.home": rootEntry(codexHome()),
+    "codex.agents": rootEntry(join(codexHome(), "agents")),
     "codex.worktrees": rootEntry(
       join(codexHome(), "worktrees"),
       "shallow scan only",
     ),
+    "codex.sessions": rootEntry(join(codexHome(), "sessions"), "path-only"),
+    "cursor.home": rootEntry(cursorHome()),
+    "cursor.skills": rootEntry(join(cursorHome(), "skills-cursor")),
+    "cursor.chats": rootEntry(join(cursorHome(), "chats"), "path-only"),
+    "cursor.plans": rootEntry(join(cursorHome(), "plans"), "tasks kind"),
     "cursor.worktrees": rootEntry(join(cursorHome(), "worktrees")),
     "gemini.home": rootEntry(
       geminiHome(),
@@ -109,7 +125,12 @@ export function runDoctor(cwd: string = process.cwd()): DoctorReport {
     ),
     "project.let": rootEntry(
       join(cwd, ".let"),
-      "optional; not required for find",
+      "optional let-standard workbed",
+    ),
+    "let.user": rootEntry(join(homeDir(), ".let"), "user let-standard assets"),
+    "agent3md.project": rootEntry(
+      join(cwd, "agent.3md"),
+      "3md agent document (let standard)",
     ),
   };
 

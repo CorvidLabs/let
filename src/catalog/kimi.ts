@@ -258,5 +258,61 @@ export function findKimiAgents(ctx: ScanContext): IndexCard[] {
     });
   }
 
+  // user-history as path-only agent memory adjacent
+  const history = join(kimiHome(), "user-history");
+  if (isDirectory(history)) {
+    cards.push({
+      id: pathCardId("agents", history),
+      kind: "agents",
+      host: "kimi",
+      name: "user-history",
+      path: history,
+      scope: "user",
+      mtime_ms: mtimeMs(history),
+      meta: { path_only: true, source: "kimi.user-history" },
+    });
+  }
+
+  return cards;
+}
+
+/** user-history entries as memory (path-only). */
+export function findKimiMemory(ctx: ScanContext): IndexCard[] {
+  const cards: IndexCard[] = [];
+  const wantUser =
+    ctx.scope === "user" ||
+    ctx.scope === "all" ||
+    (ctx.scope === "project" && ctx.config.find.include_user_skills);
+  if (!wantUser) {
+    return cards;
+  }
+  const history = join(kimiHome(), "user-history");
+  if (!isDirectory(history)) {
+    return cards;
+  }
+  try {
+    for (const name of readdirSync(history).slice(
+      0,
+      ctx.policy.maxEntriesPerRoot,
+    )) {
+      const p = join(history, name);
+      cards.push({
+        id: pathCardId("memory", p),
+        kind: "memory",
+        host: "kimi",
+        name,
+        path: p,
+        scope: "user",
+        mtime_ms: mtimeMs(p),
+        meta: {
+          path_only: true,
+          source: "kimi.user-history",
+          bytes: fileBytes(p),
+        },
+      });
+    }
+  } catch {
+    // skip
+  }
   return cards;
 }

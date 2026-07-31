@@ -32,8 +32,9 @@ let find skills --host agent3md --json
 
 ## Current milestone
 
-Federated find/where/context + agent.3md adapter + dogfood.
-Verify with `./bin/let find worktrees --cwd <repo> --json`.
+Let standard federation: all FindKinds across Claude/Grok/Codex/Cursor/Gemini/Kimi
++ agent.3md first-class (find/show/route) + dogfood.
+Verify with `./bin/let find memory --json` and `./bin/let find agents --host agent3md --json`.
 
 <!-- CorvidLabs trust toolchain: BEGIN (managed, do not edit inside) -->
 ## CorvidLabs trust toolchain (standing rules)

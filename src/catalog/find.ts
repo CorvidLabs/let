@@ -1,22 +1,57 @@
 /**
- * `let find <kind>` — federated catalog query.
+ * `let find <kind>` — federated catalog query across all hosts.
+ * The let standard: one closed kind set, host-neutral IndexCards, progressive disclosure.
  */
 
 import { join } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
 import { LetError } from "../errors.ts";
 import { fileBytes, listChildPaths, mtimeMs, pathExists } from "../fs-scan.ts";
-import {
-  claudeHome,
-  claudeProjectDir,
-  codexHome,
-  cursorHome,
-} from "../paths.ts";
+import { claudeHome, claudeProjectDir } from "../paths.ts";
 import { findAgent3mdAgents, findAgent3mdSkills } from "./agent3md.ts";
-import { findGeminiAgents, findGeminiSessions } from "./gemini.ts";
+import { dedupeCards, sortCards } from "./card-factory.ts";
+import {
+  findClaudeAgents,
+  findClaudeCommands,
+  findClaudePlugins,
+  findClaudeTasks,
+} from "./claude.ts";
+import {
+  findCodexAgents,
+  findCodexMemory,
+  findCodexPlugins,
+  findCodexSessions,
+} from "./codex.ts";
+import {
+  findCursorAgents,
+  findCursorCommands,
+  findCursorExtraSkills,
+  findCursorSessions,
+  findCursorTasks,
+} from "./cursor.ts";
+import {
+  findGeminiAgents,
+  findGeminiMemory,
+  findGeminiSessions,
+} from "./gemini.ts";
+import {
+  findGrokAgents,
+  findGrokExtraSkills,
+  findGrokMemory,
+  findGrokSessions,
+  findGrokWorkflows,
+} from "./grok.ts";
 import { pathCardId } from "./ids.ts";
 import { findInstructions } from "./instructions.ts";
-import { findKimiAgents, findKimiSessions } from "./kimi.ts";
+import { findKimiAgents, findKimiMemory, findKimiSessions } from "./kimi.ts";
+import {
+  findLetAgents,
+  findLetMemory,
+  findLetSessions,
+  findLetSuperskills,
+  findLetWorkflows,
+} from "./let-assets.ts";
+import { findMcpConfigs } from "./mcp.ts";
 import { federateWorktrees } from "./merge.ts";
 import { findSkills } from "./skills.ts";
 import type { FindKind, IndexCard } from "./types.ts";
@@ -43,6 +78,10 @@ function applyLimit(
   };
 }
 
+function finalize(items: IndexCard[]): IndexCard[] {
+  return sortCards(dedupeCards(items));
+}
+
 export async function findAssets(
   kind: FindKind,
   ctx: ScanContext,
@@ -52,7 +91,6 @@ export async function findAssets(
 
   switch (kind) {
     case "worktrees": {
-      // federation already applies limit; re-filter below if host/query set
       const r = federateWorktrees(ctx);
       items = r.cards;
       if (!opts.host && !opts.query) {
@@ -65,62 +103,83 @@ export async function findAssets(
           truncated: r.truncated,
         };
       }
-      // expand for filter: re-run with high limit
       items = federateWorktrees({ ...ctx, limit: 500 }).cards;
       break;
     }
     case "skills": {
       const r = findSkills({ ...ctx, limit: 500 });
-      const a3 = findAgent3mdSkills({ ...ctx, limit: 500 });
-      const merged = [...r.cards, ...a3];
-      merged.sort((a, b) => {
-        const aLocal = a.scope === "project" ? 0 : 1;
-        const bLocal = b.scope === "project" ? 0 : 1;
-        if (aLocal !== bLocal) {
-          return aLocal - bLocal;
-        }
-        if (a.host !== b.host) {
-          return a.host.localeCompare(b.host);
-        }
-        return a.name.localeCompare(b.name);
-      });
-      items = merged;
+      items = finalize([
+        ...r.cards,
+        ...findAgent3mdSkills({ ...ctx, limit: 500 }),
+        ...findCursorExtraSkills(ctx),
+        ...findGrokExtraSkills(ctx),
+      ]);
       break;
     }
     case "instructions": {
-      items = findInstructions(ctx);
+      items = finalize(findInstructions(ctx));
       break;
     }
     case "sessions": {
-      items = [
-        ...findSessions(ctx),
+      items = finalize([
+        ...findClaudeSessions(ctx),
+        ...findGrokSessions(ctx),
+        ...findCodexSessions(ctx),
+        ...findCursorSessions(ctx),
         ...findGeminiSessions(ctx),
         ...findKimiSessions(ctx),
-      ];
+        ...findLetSessions(ctx),
+      ]);
       break;
     }
     case "agents": {
-      const partial = findPartialKind("agents", ctx);
-      const a3 = findAgent3mdAgents(ctx);
-      const gem = findGeminiAgents(ctx);
-      const kimiA = findKimiAgents(ctx);
-      items = [...a3, ...partial, ...gem, ...kimiA];
+      items = finalize([
+        ...findAgent3mdAgents(ctx),
+        ...findClaudeAgents(ctx),
+        ...findCodexAgents(ctx),
+        ...findCursorAgents(ctx),
+        ...findGrokAgents(ctx),
+        ...findGeminiAgents(ctx).filter((c) => c.kind === "agents"),
+        ...findKimiAgents(ctx),
+        ...findLetAgents(ctx),
+      ]);
+      break;
+    }
+    case "commands": {
+      items = finalize([
+        ...findClaudeCommands(ctx),
+        ...findCursorCommands(ctx),
+      ]);
+      break;
+    }
+    case "tasks": {
+      items = finalize([...findClaudeTasks(ctx), ...findCursorTasks(ctx)]);
+      break;
+    }
+    case "memory": {
+      items = finalize([
+        ...findGrokMemory(ctx),
+        ...findCodexMemory(ctx),
+        ...findGeminiMemory(ctx),
+        ...findKimiMemory(ctx),
+        ...findLetMemory(ctx),
+      ]);
       break;
     }
     case "mcp": {
-      items = [
-        ...findPartialKind("mcp", ctx),
-        ...findGeminiAgents(ctx).filter((c) => c.kind === "mcp"),
-      ];
+      items = finalize(findMcpConfigs(ctx));
       break;
     }
-    case "commands":
-    case "tasks":
-    case "memory":
-    case "plugins":
-    case "workflows":
+    case "plugins": {
+      items = finalize([...findClaudePlugins(ctx), ...findCodexPlugins(ctx)]);
+      break;
+    }
+    case "workflows": {
+      items = finalize([...findGrokWorkflows(ctx), ...findLetWorkflows(ctx)]);
+      break;
+    }
     case "superskills": {
-      items = findPartialKind(kind, ctx);
+      items = finalize(findLetSuperskills(ctx));
       break;
     }
     default:
@@ -153,7 +212,7 @@ export async function findAssets(
   };
 }
 
-function findSessions(ctx: ScanContext): IndexCard[] {
+function findClaudeSessions(ctx: ScanContext): IndexCard[] {
   const cards: IndexCard[] = [];
   // Claude: ~/.claude/projects/<encoded>/*.jsonl — path-only
   if (ctx.repoRoot && (ctx.scope === "project" || ctx.scope === "all")) {
@@ -175,6 +234,7 @@ function findSessions(ctx: ScanContext): IndexCard[] {
           meta: {
             bytes: fileBytes(child),
             path_only: true,
+            source: "claude.projects",
           },
         });
       }
@@ -182,7 +242,6 @@ function findSessions(ctx: ScanContext): IndexCard[] {
   }
 
   if (ctx.scope === "user" || ctx.scope === "all") {
-    // List encoded project dirs only (shallow) — not all jsonl
     const projects = join(claudeHome(), "projects");
     if (pathExists(projects)) {
       for (const dir of listChildPaths(projects, ctx.policy, {
@@ -195,77 +254,27 @@ function findSessions(ctx: ScanContext): IndexCard[] {
           name: dir.split("/").pop() ?? dir,
           path: dir,
           scope: "user",
-          meta: { path_only: true, encoded_project: true },
+          meta: {
+            path_only: true,
+            encoded_project: true,
+            source: "claude.projects",
+          },
         });
       }
     }
-  }
-
-  return cards;
-}
-
-function findPartialKind(kind: FindKind, ctx: ScanContext): IndexCard[] {
-  const cards: IndexCard[] = [];
-
-  if (kind === "commands" && ctx.repoRoot) {
-    const dir = join(ctx.repoRoot, ".claude", "commands");
-    if (pathExists(dir)) {
-      for (const child of listChildPaths(dir, ctx.policy)) {
-        cards.push({
-          id: pathCardId("commands", child),
-          kind: "commands",
-          host: "claude",
-          name: child.split("/").pop() ?? child,
-          path: child,
-          scope: "project",
-          repo_root: ctx.repoRoot,
-          mtime_ms: mtimeMs(child),
-        });
-      }
-    }
-  }
-
-  if (kind === "agents") {
-    const agentDirs: { dir: string; host: "claude" | "codex" | "cursor" }[] =
-      [];
-    if (ctx.repoRoot) {
-      agentDirs.push({
-        dir: join(ctx.repoRoot, ".claude", "agents"),
+    // legacy empty sessions dir marker
+    const sess = join(claudeHome(), "sessions");
+    if (pathExists(sess)) {
+      cards.push({
+        id: pathCardId("sessions", sess),
+        kind: "sessions",
         host: "claude",
+        name: "sessions",
+        path: sess,
+        scope: "user",
+        mtime_ms: mtimeMs(sess),
+        meta: { path_only: true, source: "claude.sessions" },
       });
-    }
-    agentDirs.push(
-      { dir: join(claudeHome(), "agents"), host: "claude" },
-      { dir: join(codexHome(), "agents"), host: "codex" },
-      { dir: join(cursorHome(), "agents"), host: "cursor" },
-    );
-    for (const { dir, host } of agentDirs) {
-      if (!pathExists(dir)) {
-        continue;
-      }
-      const underRepo = Boolean(ctx.repoRoot && dir.startsWith(ctx.repoRoot));
-      if (
-        ctx.scope === "project" &&
-        !underRepo &&
-        !ctx.config.find.include_user_skills
-      ) {
-        continue;
-      }
-      if (ctx.scope === "user" && underRepo) {
-        continue;
-      }
-      for (const child of listChildPaths(dir, ctx.policy)) {
-        cards.push({
-          id: pathCardId("agents", child),
-          kind: "agents",
-          host,
-          name: child.split("/").pop() ?? child,
-          path: child,
-          scope: underRepo ? "project" : "user",
-          repo_root: underRepo ? (ctx.repoRoot ?? undefined) : undefined,
-          mtime_ms: mtimeMs(child),
-        });
-      }
     }
   }
 

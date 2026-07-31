@@ -57,8 +57,9 @@ describe("open", () => {
     const ctx = buildScanContext({ cwd: root });
     const r = await openPath(join(root, "agent.3md"), ctx);
     expect(r.path.endsWith("agent.3md")).toBe(true);
-    expect(r.kind === "agents" || r.kind === "file").toBe(true);
-    // should not refuse
+    expect(r.kind).toBe("agents");
+    expect(r.host).toBe("agent3md");
+    expect(r.payload?.format).toBe("agent.3md");
     expect(r.refused).toBeUndefined();
   });
 
