@@ -1,0 +1,39 @@
+{
+  "name": "@corvidlabs/let",
+  "version": "0.1.0",
+  "description": "Universal agent-asset locator + dynamic workbed for multi-host coding agents",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "let": "./bin/let"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CorvidLabs/let.git"
+  },
+  "scripts": {
+    "dev": "bun run --watch src/cli.ts",
+    "start": "bun run src/cli.ts",
+    "test": "bun test",
+    "lint": "bunx biome check src/ test/",
+    "format": "bunx biome format --write src/ test/",
+    "build": "bun build src/cli.ts --outdir dist --target bun"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "latest",
+    "@types/bun": "latest"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}

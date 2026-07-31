@@ -1,0 +1,10 @@
+# fledge.toml — project task definitions
+# Docs: https://github.com/CorvidLabs/fledge#task-runner
+
+[tasks]
+dev = "bun run src/cli.ts"
+test = "bun test"
+lint = "bun run lint"
+build = "bun run build"
+ci = "bun test && bun run lint"
+doctor = "bun run src/cli.ts doctor --json"
