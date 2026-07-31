@@ -49,6 +49,30 @@ function iso(ms?: number): string | undefined {
   }
 }
 
+/** Infer project root from path-only session cards when repo_root is absent. */
+function inferRepoRoot(card: IndexCard): string | undefined {
+  if (card.repo_root) {
+    return card.repo_root;
+  }
+  const p = card.path.replace(/\\/g, "/");
+  // Grok: ~/.grok/sessions/<encodeURIComponent(absPath)>
+  if (p.includes("/.grok/sessions/")) {
+    const leaf = p.split("/.grok/sessions/")[1]?.split("/")[0];
+    if (leaf?.startsWith("%2F")) {
+      try {
+        return decodeURIComponent(leaf);
+      } catch {
+        // ignore
+      }
+    }
+  }
+  // Card name sometimes is the absolute path (decoded grok bucket)
+  if (card.name.startsWith("/") && card.name.includes("/Development")) {
+    return card.name;
+  }
+  return undefined;
+}
+
 function collectSessions(cards: IndexCard[]): {
   hosts: Map<string, HostUsage>;
   projects: Map<string, ProjectUsage>;
@@ -76,7 +100,7 @@ function collectSessions(cards: IndexCard[]): {
       hu.sample_names.push(c.name);
     }
 
-    const root = c.repo_root;
+    const root = inferRepoRoot(c);
     if (root) {
       let pu = projects.get(root);
       if (!pu) {
