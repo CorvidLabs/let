@@ -1,6 +1,6 @@
 [plugin]
 name = "let"
-version = "0.1.0"
+version = "0.2.0"
 description = "Find any agent asset for any agent — worktrees, skills, sessions, agent.3md across Claude, Codex, Cursor, Grok, Gemini, Kimi"
 author = "CorvidLabs"
 license = "MIT"

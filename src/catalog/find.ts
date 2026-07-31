@@ -247,6 +247,18 @@ function findClaudeSessions(ctx: ScanContext): IndexCard[] {
       for (const dir of listChildPaths(projects, ctx.policy, {
         directoriesOnly: true,
       })) {
+        // Deeper: count jsonl children (path-only; still no bodies)
+        let jsonl = 0;
+        let latest = mtimeMs(dir);
+        for (const child of listChildPaths(dir, ctx.policy)) {
+          if (child.endsWith(".jsonl")) {
+            jsonl++;
+            const m = mtimeMs(child);
+            if (m !== undefined && (latest === undefined || m > latest)) {
+              latest = m;
+            }
+          }
+        }
         cards.push({
           id: pathCardId("sessions", dir),
           kind: "sessions",
@@ -254,10 +266,12 @@ function findClaudeSessions(ctx: ScanContext): IndexCard[] {
           name: dir.split("/").pop() ?? dir,
           path: dir,
           scope: "user",
+          mtime_ms: latest,
           meta: {
             path_only: true,
             encoded_project: true,
             source: "claude.projects",
+            jsonl_count: jsonl,
           },
         });
       }

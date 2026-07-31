@@ -1,6 +1,6 @@
 {
   "name": "@corvidlabs/let",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Find any agent asset for any agent — host-neutral locator for skills, worktrees, instructions, and agent.3md",
   "type": "module",
   "license": "MIT",

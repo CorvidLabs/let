@@ -2,6 +2,27 @@
 
 All notable changes to `@corvidlabs/let` are documented here.
 
+## [0.2.0] - 2026-07-31
+
+Full locator + workbed surface on top of 0.1.0 federation.
+
+### Added
+
+- **`let history`** (alias `usage`) — hosts and projects ranked by session activity (path-only)
+- **`let mcp serve`** — read-only MCP stdio server: `let_find`, `let_where`, `let_context`, `let_show`, `let_doctor`, `let_route`, `let_history`
+- **`let init`** — bootstrap `.let/` workbed dirs
+- **`let worktree list|add|remove`** — list federated trees; add/remove under `.let/worktrees`
+- **`let memory list|get|set|delete`** — local key/value memory (project or user)
+- **`let super list|get|init-example`** — superskill TOML cards
+- **`let config show`** — loaded config + sources
+- **`let skill list|get`** — aliases over find/show skills
+- Deeper Claude user session cards (`jsonl_count` + latest mtime per project dir)
+
+### Security
+
+- History and MCP tools never load session/memory bodies
+- Memory writes only under `.let/memory` / `~/.let/memory`
+
 ## [0.1.0] - 2026-07-31
 
 First public locator release of the **let standard**: federated discovery of agent
