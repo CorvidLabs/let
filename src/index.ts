@@ -14,6 +14,12 @@ export {
 } from "./catalog/context.ts";
 export { buildScanContext } from "./catalog/context-builder.ts";
 export { type FindResult, findAssets } from "./catalog/find.ts";
+export {
+  buildHistory,
+  type HistoryReport,
+  type HostUsage,
+  type ProjectUsage,
+} from "./catalog/history.ts";
 export { attributeHost, federateWorktrees } from "./catalog/merge.ts";
 export {
   phraseHits,

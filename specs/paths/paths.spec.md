@@ -33,6 +33,7 @@ plus Claude project path encoding.
 | `projectLetDir` | `<repo>/.let`. |
 | `absPath` | Resolve path against cwd. |
 | `encodeClaudeProjectPath` | Encode absolute path like Claude `projects/` dir names. |
+| `decodeClaudeProjectPath` | Best-effort reverse of Claude project dir encoding. |
 | `claudeProjectDir` | `~/.claude/projects/<encoded>`. |
 
 ## Invariants

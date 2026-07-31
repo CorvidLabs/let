@@ -7,7 +7,11 @@ import { join } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
 import { LetError } from "../errors.ts";
 import { fileBytes, listChildPaths, mtimeMs, pathExists } from "../fs-scan.ts";
-import { claudeHome, claudeProjectDir } from "../paths.ts";
+import {
+  claudeHome,
+  claudeProjectDir,
+  decodeClaudeProjectPath,
+} from "../paths.ts";
 import { findAgent3mdAgents, findAgent3mdSkills } from "./agent3md.ts";
 import { dedupeCards, sortCards } from "./card-factory.ts";
 import {
@@ -247,17 +251,35 @@ function findClaudeSessions(ctx: ScanContext): IndexCard[] {
       for (const dir of listChildPaths(projects, ctx.policy, {
         directoriesOnly: true,
       })) {
+        // Deeper: count jsonl children (path-only; still no bodies)
+        let jsonl = 0;
+        let latest = mtimeMs(dir);
+        for (const child of listChildPaths(dir, ctx.policy)) {
+          if (child.endsWith(".jsonl")) {
+            jsonl++;
+            const m = mtimeMs(child);
+            if (m !== undefined && (latest === undefined || m > latest)) {
+              latest = m;
+            }
+          }
+        }
+        const encName = dir.split("/").pop() ?? dir;
+        const repoRoot = decodeClaudeProjectPath(encName) ?? undefined;
         cards.push({
           id: pathCardId("sessions", dir),
           kind: "sessions",
           host: "claude",
-          name: dir.split("/").pop() ?? dir,
+          name: encName,
           path: dir,
           scope: "user",
+          repo_root: repoRoot,
+          mtime_ms: latest,
           meta: {
             path_only: true,
             encoded_project: true,
             source: "claude.projects",
+            jsonl_count: jsonl,
+            decoded_root: repoRoot,
           },
         });
       }

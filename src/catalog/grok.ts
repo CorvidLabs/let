@@ -85,14 +85,20 @@ export function findGrokSessions(ctx: ScanContext): IndexCard[] {
             continue;
           }
           const p = join(sessionsRoot, name);
+          const decoded = decodeURIComponentSafe(name);
+          const repoRoot =
+            decoded.startsWith("/") && !decoded.includes("\0")
+              ? decoded
+              : undefined;
           cards.push(
             makeCard({
               kind: "sessions",
               host: "grok",
               path: p,
-              name: decodeURIComponentSafe(name),
+              name: decoded,
               scope: "user",
               pathOnly: true,
+              repoRoot: repoRoot ?? null,
               meta: {
                 source: "grok.sessions",
                 encoded_path: name,

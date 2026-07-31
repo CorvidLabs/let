@@ -125,4 +125,28 @@ describe("let standard federation", () => {
     // may be empty on a clean machine; never throws
     expect(commands.items.every((c) => c.kind === "commands")).toBe(true);
   });
+
+  test("user sessions set repo_root for main hosts when decodable", async () => {
+    const ctx = buildScanContext({ cwd: root, scope: "user", limit: 500 });
+    const sessions = await findAssets("sessions", ctx);
+    const byHost = new Map<string, { n: number; withRoot: number }>();
+    for (const s of sessions.items) {
+      const cur = byHost.get(s.host) ?? { n: 0, withRoot: 0 };
+      cur.n++;
+      if (s.repo_root) {
+        cur.withRoot++;
+      }
+      byHost.set(s.host, cur);
+    }
+    // Grok session dirs are path-encoded abs roots
+    const grok = byHost.get("grok");
+    if (grok && grok.n > 0) {
+      expect(grok.withRoot).toBe(grok.n);
+    }
+    // Claude project dirs decode to abs paths when under /Users
+    const claude = byHost.get("claude");
+    if (claude && claude.n > 5) {
+      expect(claude.withRoot).toBeGreaterThan(0);
+    }
+  });
 });

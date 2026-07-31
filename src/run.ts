@@ -5,6 +5,7 @@
 import { buildContext } from "./catalog/context.ts";
 import { buildScanContext } from "./catalog/context-builder.ts";
 import { findAssets } from "./catalog/find.ts";
+import { buildHistory } from "./catalog/history.ts";
 import { routeSkills } from "./catalog/route.ts";
 import { openPath, showAsset } from "./catalog/show.ts";
 import {
@@ -14,9 +15,24 @@ import {
   isFindScope,
 } from "./catalog/types.ts";
 import { whereAmI } from "./catalog/where.ts";
+import { loadConfig } from "./config.ts";
 import { runDoctor } from "./doctor.ts";
 import { type Envelope, LET_VERSION, withEnvelope } from "./envelope.ts";
 import { LetError } from "./errors.ts";
+import { runMcpServe } from "./mcp/serve.ts";
+import { initLetWorkbed } from "./workbed/init.ts";
+import {
+  memoryDelete,
+  memoryGet,
+  memoryList,
+  memorySet,
+} from "./workbed/memory.ts";
+import {
+  getSuperskill,
+  listSuperskills,
+  writeExampleSuperskill,
+} from "./workbed/superskill.ts";
+import { worktreeAdd, worktreeRemove } from "./workbed/worktree-write.ts";
 
 type ParsedArgs = {
   command: string;
@@ -75,16 +91,29 @@ function flagStr(
 export function helpText(): string {
   return `let ${LET_VERSION} — universal agent-asset locator + workbed
 
-Usage:
+Discovery:
   let doctor [--json]
   let where [path] [--cwd <path>] [--json]
   let find <kind> [--scope project|user|all] [--host <id>] [--query <text>]
                   [--cwd <path>] [--repo <path>] [--limit N] [--json]
   let show <kind> <id|name> [--cwd <path>] [--json]
   let open <path> [--cwd <path>] [--json]
-  let skill route <text> [--host <id>] [--limit N] [--json]
-  let route <text>                 # alias for skill route
   let context [--pack brief|full] [--cwd <path>] [--json]
+  let history [--scope project|user|all] [--cwd <path>] [--json]
+  let skill route|list|get <…> [--json]
+  let route <text>                 # alias for skill route
+
+Workbed:
+  let init [--cwd <path>] [--json]
+  let worktree list|add|remove …
+  let memory list|get|set|delete …
+  let super list|get|init-example …
+  let config show [--json]
+
+MCP:
+  let mcp serve                    # read-only tools over stdio
+
+Meta:
   let version [--json]
   let help
 
@@ -93,9 +122,7 @@ Install (fledge):
   fledge let find worktrees --json
 
 Kinds: ${FIND_KINDS.join(", ")}
-Show aliases: skill, agent, worktree, instruction, session
-
-Federation over relocation — indexes .claude/worktrees, ~/.codex, git, …
+Federation over relocation — indexes host assets in place.
 Docs: docs/usage.md
 `;
 }
@@ -162,6 +189,25 @@ export async function runLet(
         ? "help"
         : parsed.command;
 
+  // MCP serve takes over stdio — no JSON envelope wrapper
+  if (command === "mcp") {
+    const sub = parsed.positionals[0];
+    if (sub !== "serve") {
+      const bad = await withEnvelope("mcp", async () => {
+        throw new LetError("usage", "Usage: let mcp serve", {
+          sub: sub ?? null,
+        });
+      });
+      return {
+        code: exitCodeForEnvelope(bad),
+        text: `${JSON.stringify(bad, null, 2)}\n`,
+        envelope: bad,
+      };
+    }
+    await runMcpServe();
+    return { code: 0, text: "" };
+  }
+
   const envelope = await withEnvelope(command, async () => {
     if (command === "version") {
       return { version: LET_VERSION };
@@ -202,7 +248,16 @@ export async function runLet(
       cwd = parsed.positionals[0];
     }
 
-    const ctx = buildScanContext({ cwd, repo, scope, limit });
+    // history defaults to user scope for "what have I used on this Mac?"
+    const historyScope: FindScope =
+      command === "history" && !flagStr(parsed.flags, "scope") ? "user" : scope;
+
+    const ctx = buildScanContext({
+      cwd,
+      repo,
+      scope: command === "history" ? historyScope : scope,
+      limit,
+    });
 
     if (command === "find") {
       const kind = parsed.positionals[0];
@@ -233,6 +288,10 @@ export async function runLet(
       return buildContext(ctx, packRaw);
     }
 
+    if (command === "history" || command === "usage") {
+      return buildHistory(ctx);
+    }
+
     if (command === "show") {
       const kind = parsed.positionals[0];
       const ref = parsed.positionals[1];
@@ -255,32 +314,191 @@ export async function runLet(
     }
 
     if (command === "skill" || command === "route") {
-      let textParts: string[] = [];
-      if (command === "skill") {
-        const sub = parsed.positionals[0];
-        if (sub !== "route") {
+      if (command === "route") {
+        const text = parsed.positionals.join(" ").trim();
+        if (!text) {
           throw new LetError(
             "usage",
-            'Usage: let skill route "<text>"  (or: let route "<text>")',
-            { sub: sub ?? null },
+            'route requires text. Example: let route "find worktrees"',
+            {},
           );
         }
-        textParts = parsed.positionals.slice(1);
-      } else {
-        textParts = parsed.positionals;
+        return routeSkills(text, ctx, {
+          host: flagStr(parsed.flags, "host"),
+          limit,
+        });
       }
-      const text = textParts.join(" ").trim();
-      if (!text) {
-        throw new LetError(
-          "usage",
-          'skill route requires text. Example: let skill route "find worktrees"',
-          {},
-        );
+      const sub = parsed.positionals[0];
+      if (sub === "route") {
+        const text = parsed.positionals.slice(1).join(" ").trim();
+        if (!text) {
+          throw new LetError(
+            "usage",
+            'skill route requires text. Example: let skill route "find worktrees"',
+            {},
+          );
+        }
+        return routeSkills(text, ctx, {
+          host: flagStr(parsed.flags, "host"),
+          limit,
+        });
       }
-      return routeSkills(text, ctx, {
-        host: flagStr(parsed.flags, "host"),
-        limit,
+      if (sub === "list") {
+        return findAssets("skills", ctx, {
+          host: flagStr(parsed.flags, "host"),
+          query: flagStr(parsed.flags, "query"),
+        });
+      }
+      if (sub === "get") {
+        const name = parsed.positionals[1];
+        if (!name) {
+          throw new LetError("usage", "skill get requires <name|id>", {});
+        }
+        return showAsset("skills", name, ctx);
+      }
+      throw new LetError(
+        "usage",
+        'Usage: let skill route|list|get …  (or: let route "…")',
+        { sub: sub ?? null },
+      );
+    }
+
+    if (command === "init") {
+      const root = ctx.repoRoot ?? ctx.cwd;
+      return initLetWorkbed(root);
+    }
+
+    if (command === "worktree" || command === "worktrees") {
+      const sub = parsed.positionals[0] ?? "list";
+      if (sub === "list") {
+        return findAssets("worktrees", ctx, {
+          host: flagStr(parsed.flags, "host"),
+          query: flagStr(parsed.flags, "query"),
+        });
+      }
+      if (sub === "add") {
+        const name = parsed.positionals[1] ?? flagStr(parsed.flags, "name");
+        if (!name) {
+          throw new LetError(
+            "usage",
+            "worktree add requires <name> [--branch <b>]",
+            {},
+          );
+        }
+        const root = ctx.repoRoot ?? ctx.cwd;
+        return worktreeAdd({
+          repoRoot: root,
+          name,
+          branch: flagStr(parsed.flags, "branch"),
+        });
+      }
+      if (sub === "remove" || sub === "rm") {
+        const path = parsed.positionals[1];
+        if (!path) {
+          throw new LetError("usage", "worktree remove requires <path>", {});
+        }
+        const root = ctx.repoRoot ?? ctx.cwd;
+        return worktreeRemove({
+          repoRoot: root,
+          path,
+          force: parsed.flags.has("force"),
+        });
+      }
+      throw new LetError("usage", "Usage: let worktree list|add|remove", {
+        sub,
       });
+    }
+
+    if (command === "memory") {
+      const sub = parsed.positionals[0] ?? "list";
+      const memScope =
+        scope === "user" || flagStr(parsed.flags, "scope") === "user"
+          ? "user"
+          : "project";
+      if (sub === "list") {
+        return {
+          scope: memScope,
+          items: memoryList(memScope, ctx.repoRoot),
+        };
+      }
+      if (sub === "get") {
+        const key = parsed.positionals[1];
+        if (!key) {
+          throw new LetError("usage", "memory get requires <key>", {});
+        }
+        return memoryGet(key, memScope, ctx.repoRoot);
+      }
+      if (sub === "set") {
+        const key = parsed.positionals[1];
+        const raw = parsed.positionals.slice(2).join(" ");
+        if (!key || !raw) {
+          throw new LetError(
+            "usage",
+            "memory set requires <key> <json-or-text>",
+            {},
+          );
+        }
+        let value: unknown = raw;
+        try {
+          value = JSON.parse(raw);
+        } catch {
+          // plain text
+        }
+        return memorySet(key, value, memScope, ctx.repoRoot);
+      }
+      if (sub === "delete" || sub === "rm") {
+        const key = parsed.positionals[1];
+        if (!key) {
+          throw new LetError("usage", "memory delete requires <key>", {});
+        }
+        return memoryDelete(key, memScope, ctx.repoRoot);
+      }
+      throw new LetError("usage", "Usage: let memory list|get|set|delete", {
+        sub,
+      });
+    }
+
+    if (
+      command === "super" ||
+      command === "superskill" ||
+      command === "superskills"
+    ) {
+      const sub = parsed.positionals[0] ?? "list";
+      const superScope =
+        scope === "all" ? "all" : scope === "user" ? "user" : "project";
+      if (sub === "list") {
+        return {
+          items: listSuperskills(superScope, ctx.repoRoot),
+        };
+      }
+      if (sub === "get") {
+        const name = parsed.positionals[1];
+        if (!name) {
+          throw new LetError("usage", "super get requires <name>", {});
+        }
+        return getSuperskill(name, superScope, ctx.repoRoot);
+      }
+      if (sub === "init-example") {
+        const root = ctx.repoRoot ?? ctx.cwd;
+        return writeExampleSuperskill(root);
+      }
+      throw new LetError("usage", "Usage: let super list|get|init-example", {
+        sub,
+      });
+    }
+
+    if (command === "config") {
+      const sub = parsed.positionals[0] ?? "show";
+      if (sub === "show" || sub === "get") {
+        const loaded = loadConfig(ctx.cwd);
+        return {
+          config: loaded.config,
+          sources: loaded.sources,
+          userPath: loaded.userPath,
+          projectPath: loaded.projectPath,
+        };
+      }
+      throw new LetError("usage", "Usage: let config show", { sub });
     }
 
     throw new LetError("usage", `Unknown command: ${command}. Try: let help`, {

@@ -25,10 +25,15 @@ export type CardOpts = {
 export function makeCard(opts: CardOpts, ctx?: ScanContext): IndexCard {
   const inRepo = ctx ? underRepo(opts.path, ctx) : Boolean(opts.repoRoot);
   const scope = opts.scope ?? (opts.repoRoot || inRepo ? "project" : "user");
+  // Explicit repoRoot wins even for user-scope session cards (history attribution).
   const repo_root =
-    scope === "project"
-      ? (opts.repoRoot ?? ctx?.repoRoot ?? undefined)
-      : undefined;
+    opts.repoRoot !== undefined &&
+    opts.repoRoot !== null &&
+    opts.repoRoot !== ""
+      ? opts.repoRoot
+      : scope === "project"
+        ? (ctx?.repoRoot ?? undefined)
+        : undefined;
 
   return {
     id: pathCardId(opts.kind, opts.path),

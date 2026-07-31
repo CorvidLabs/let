@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { encodeClaudeProjectPath } from "../src/paths.ts";
+import {
+  decodeClaudeProjectPath,
+  encodeClaudeProjectPath,
+} from "../src/paths.ts";
 
 describe("encodeClaudeProjectPath", () => {
   test("encodes absolute unix path like Claude projects dirs", () => {
@@ -12,5 +15,10 @@ describe("encodeClaudeProjectPath", () => {
     // Double dash for path segment that was `_CorvidLabs` under Development/
     // Claude uses `-` for every `/`; `_` stays.
     expect(encoded).toBe("-Users-leif-Development--CorvidLabs-quill");
+  });
+
+  test("decodeClaudeProjectPath round-trips CorvidLabs path", () => {
+    const p = "/Users/leif/Development/_CorvidLabs/quill";
+    expect(decodeClaudeProjectPath(encodeClaudeProjectPath(p))).toBe(p);
   });
 });

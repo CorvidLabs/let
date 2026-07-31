@@ -41,6 +41,37 @@ for every kind.
 
 All commands accept `--json` (default machine path for agents).
 
+### `let history` (alias: `usage`)
+
+Rank hosts and projects by session activity (path-only, no transcripts).
+
+```bash
+let history --json                    # default scope=user (this Mac)
+let history --scope project --json    # current repo only
+```
+
+### `let mcp serve`
+
+Read-only MCP server on stdio (JSON-RPC 2.0). Tools: `let_find`, `let_where`,
+`let_context`, `let_show`, `let_doctor`, `let_route`, `let_history`.
+
+```bash
+let mcp serve
+```
+
+### Workbed
+
+```bash
+let init --json
+let worktree list --json
+let worktree add my-feature --json
+let memory set note '{"hello":true}' --json
+let memory list --json
+let super init-example --json
+let super list --json
+let config show --json
+```
+
 ### `let doctor`
 
 Host roots, git/bun, config trust, agent.3md presence.
