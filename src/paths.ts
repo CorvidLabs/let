@@ -38,19 +38,19 @@ export function kimiHome(): string {
 
 /**
  * Best-effort reverse of encodeClaudeProjectPath.
- * `/` and `_` both encode to `-`, so `--` is treated as `_`.
+ * Both `/` and `_` encode to `-`. Sequence `/_` becomes `--`, so decode
+ * `--` as `/_` (slash + underscore), which matches CorvidLabs layouts.
  */
 export function decodeClaudeProjectPath(encoded: string): string | null {
   if (!encoded.startsWith("-") && !encoded.includes("-")) {
     return null;
   }
   let body = encoded.startsWith("-") ? encoded.slice(1) : encoded;
-  // Placeholder for original underscores (encoded as --)
+  // `/_` → `--` under encode (slash then underscore)
   body = body.replaceAll("--", "\u0000");
   body = body.replaceAll("-", "/");
-  body = body.replaceAll("\u0000", "_");
+  body = body.replaceAll("\u0000", "/_");
   const abs = `/${body}`;
-  // Sanity: must look like a path under /Users or /home
   if (!abs.startsWith("/Users/") && !abs.startsWith("/home/")) {
     return abs.length > 3 ? abs : null;
   }
