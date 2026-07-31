@@ -19,7 +19,7 @@ import { safeRealpath } from "../git.ts";
 import { grokHome } from "../paths.ts";
 import { makeCard } from "./card-factory.ts";
 import { skillId } from "./ids.ts";
-import { wantProject, wantUser } from "./scope.ts";
+import { wantProject, wantUser, wantUserGlobal } from "./scope.ts";
 import type { IndexCard } from "./types.ts";
 
 /** URL-encode absolute path the way Grok names session dirs. */
@@ -117,9 +117,9 @@ function decodeURIComponentSafe(s: string): string {
   }
 }
 
-/** memtrace jsonl files — path-only memory index. */
+/** memtrace jsonl files — path-only memory index (user|all only). */
 export function findGrokMemory(ctx: ScanContext): IndexCard[] {
-  if (!wantUser(ctx)) {
+  if (!wantUserGlobal(ctx)) {
     return [];
   }
   const cards: IndexCard[] = [];

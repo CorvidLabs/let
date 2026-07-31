@@ -78,7 +78,7 @@ export function findInstructions(ctx: ScanContext): IndexCard[] {
       });
     }
 
-    // .claude settings as weak instruction signals
+    // .claude settings: path-only (may embed env/hooks/MCP secrets)
     for (const rel of [
       ".claude/settings.json",
       ".claude/settings.local.json",
@@ -94,6 +94,10 @@ export function findInstructions(ctx: ScanContext): IndexCard[] {
           scope: "project",
           repo_root: ctx.repoRoot ?? undefined,
           mtime_ms: mtimeMs(p),
+          meta: {
+            path_only: true,
+            note: "settings may contain secrets — show/open metadata-only",
+          },
         });
       }
     }

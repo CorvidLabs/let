@@ -182,7 +182,9 @@ function loadTextBody(
     return {};
   }
   if (bytes > maxBytes) {
-    const text = readTextFile(path, ctx.policy, maxBytes);
+    const text = readTextFile(path, ctx.policy, maxBytes, {
+      allowPartial: true,
+    });
     return {
       body: text ?? undefined,
       truncated_body: true,
@@ -193,12 +195,40 @@ function loadTextBody(
   return { body: text ?? undefined, truncated_body: false, bytes };
 }
 
-function isSessionLikePath(path: string): boolean {
+/** Paths that must never yield transcript/store bodies via open/show fallback. */
+export function isSessionLikePath(path: string): boolean {
+  const p = path.replace(/\\/g, "/");
   return (
-    path.endsWith(".jsonl") ||
-    path.includes("/sessions/") ||
-    path.includes("/.claude/projects/")
+    p.endsWith(".jsonl") ||
+    p.endsWith(".sqlite") ||
+    p.endsWith(".sqlite-wal") ||
+    p.endsWith(".sqlite-shm") ||
+    p.includes("/sessions/") ||
+    p.includes("/.claude/projects/") ||
+    p.includes("/.claude/tasks/") ||
+    p.includes("/.cursor/chats/") ||
+    p.includes("/.grok/sessions/") ||
+    p.includes("/.grok/memtrace/") ||
+    p.includes("/.gemini/history/") ||
+    p.includes("/.gemini/antigravity/conversations/") ||
+    p.includes("/.kimi-code/sessions/") ||
+    p.includes("/.kimi-code/user-history/") ||
+    p.includes("/.codex/sessions/") ||
+    p.includes("/.codex/archived_sessions/") ||
+    p.includes("/.let/sessions/") ||
+    p.includes("/.let/memory/")
   );
+}
+
+function isPathOnlyCard(card: IndexCard): boolean {
+  if (card.meta?.path_only === true) {
+    return true;
+  }
+  const note = card.meta?.note?.toString() ?? "";
+  if (note.toLowerCase().includes("secret")) {
+    return true;
+  }
+  return false;
 }
 
 export async function showAsset(
@@ -235,11 +265,8 @@ export async function showAsset(
     };
   }
 
-  // MCP / plugins with path_only or secrets notes
-  if (
-    card.meta?.path_only === true ||
-    card.meta?.note?.toString().includes("secrets")
-  ) {
+  // MCP / plugins / secret-bearing configs
+  if (isPathOnlyCard(card)) {
     return {
       ...card,
       body: undefined,
@@ -435,7 +462,12 @@ export async function openPath(
   for (const kind of kinds) {
     try {
       const card = await resolveCard(kind, rp, ctx);
-      if (kind === "sessions" || isSessionLikePath(card.path)) {
+      if (
+        kind === "sessions" ||
+        kind === "memory" ||
+        isSessionLikePath(card.path) ||
+        isPathOnlyCard(card)
+      ) {
         return {
           path: rp,
           kind,
@@ -447,7 +479,9 @@ export async function openPath(
             mtime_ms: mtimeMs(rp),
             path_only: true,
           },
-          refused: "session_or_jsonl",
+          refused: isPathOnlyCard(card)
+            ? "path_only_or_secrets"
+            : "session_or_jsonl",
         };
       }
       if (kind === "worktrees") {

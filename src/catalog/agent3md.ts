@@ -12,7 +12,7 @@ import { isDirectory, mtimeMs, pathExists, readTextFile } from "../fs-scan.ts";
 import { safeRealpath } from "../git.ts";
 import { homeDir, projectLetDir } from "../paths.ts";
 import { pathCardId, skillId } from "./ids.ts";
-import { wantProject, wantUser } from "./scope.ts";
+import { underRepo, wantProject, wantUser } from "./scope.ts";
 import type { IndexCard } from "./types.ts";
 
 const CANDIDATE_NAMES = ["agent.3md", "Agent.3md"];
@@ -135,16 +135,16 @@ function agentCardFromPath(path: string, ctx: ScanContext): IndexCard {
     }
   }
 
-  const underRepo = Boolean(ctx.repoRoot && path.startsWith(ctx.repoRoot));
+  const inRepo = underRepo(path, ctx);
   return {
     id: pathCardId("agents", path),
     kind: "agents",
     host: "agent3md",
     name,
     path,
-    scope: underRepo ? "project" : "user",
+    scope: inRepo ? "project" : "user",
     description,
-    repo_root: underRepo ? (ctx.repoRoot ?? undefined) : undefined,
+    repo_root: inRepo ? (ctx.repoRoot ?? undefined) : undefined,
     mtime_ms: mtimeMs(path),
     meta: {
       format: "agent.3md",
@@ -174,7 +174,7 @@ export function findAgent3mdSkills(ctx: ScanContext): IndexCard[] {
     try {
       const agent = new Agent(text);
       const m = agent.manifest();
-      const underRepo = Boolean(ctx.repoRoot && path.startsWith(ctx.repoRoot));
+      const inRepo = underRepo(path, ctx);
       for (const s of m.skills) {
         cards.push({
           id: skillId("agent3md", s.name, `${path}#${s.z}`),
@@ -182,14 +182,14 @@ export function findAgent3mdSkills(ctx: ScanContext): IndexCard[] {
           host: "agent3md",
           name: s.name,
           path,
-          scope: underRepo ? "project" : "user",
+          scope: inRepo ? "project" : "user",
           description: s.tool
             ? `tool: ${s.tool}`
             : s.triggers.length
               ? `triggers: ${s.triggers.join(", ")}`
               : undefined,
           triggers: s.triggers,
-          repo_root: underRepo ? (ctx.repoRoot ?? undefined) : undefined,
+          repo_root: inRepo ? (ctx.repoRoot ?? undefined) : undefined,
           mtime_ms: mtimeMs(path),
           meta: {
             format: "agent.3md",

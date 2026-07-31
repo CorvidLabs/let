@@ -3,10 +3,13 @@
  */
 
 import {
+  closeSync,
   existsSync,
   lstatSync,
+  openSync,
   readdirSync,
   readFileSync,
+  readSync,
   realpathSync,
   statSync,
 } from "node:fs";
@@ -134,11 +137,16 @@ export function isImmediateChild(child: string, parent: string): boolean {
   return rel !== "" && !rel.includes("..") && !rel.includes(sep);
 }
 
-/** Read small text file; null on failure / deny. */
+/**
+ * Read text file; null on failure / deny.
+ * When allowPartial is true and the file is larger than maxBytes, returns the
+ * first maxBytes of UTF-8 content (best-effort; may split a multi-byte char).
+ */
 export function readTextFile(
   path: string,
   policy: ScanPolicy,
   maxBytes = 256_000,
+  opts: { allowPartial?: boolean } = {},
 ): string | null {
   const name = basename(path);
   if (isDeniedBasename(name, policy)) {
@@ -146,10 +154,24 @@ export function readTextFile(
   }
   try {
     const st = statSync(path);
-    if (!st.isFile() || st.size > maxBytes) {
+    if (!st.isFile()) {
       return null;
     }
-    return readFileSync(path, "utf8");
+    if (st.size <= maxBytes) {
+      return readFileSync(path, "utf8");
+    }
+    if (!opts.allowPartial) {
+      return null;
+    }
+    // Cap: read only the prefix so large skills still progressive-disclose.
+    const fd = openSync(path, "r");
+    try {
+      const buf = Buffer.alloc(maxBytes);
+      const n = readSync(fd, buf, 0, maxBytes, 0);
+      return buf.subarray(0, n).toString("utf8");
+    } finally {
+      closeSync(fd);
+    }
   } catch {
     return null;
   }

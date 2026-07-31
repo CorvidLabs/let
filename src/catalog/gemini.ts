@@ -243,14 +243,10 @@ export function findGeminiAgents(ctx: ScanContext): IndexCard[] {
   return cards;
 }
 
-/** Antigravity brain / knowledge — path-only memory. */
+/** Antigravity brain / knowledge — path-only memory (user|all only). */
 export function findGeminiMemory(ctx: ScanContext): IndexCard[] {
   const cards: IndexCard[] = [];
-  const wantUser =
-    ctx.scope === "user" ||
-    ctx.scope === "all" ||
-    (ctx.scope === "project" && ctx.config.find.include_user_skills);
-  if (!wantUser) {
+  if (ctx.scope !== "user" && ctx.scope !== "all") {
     return cards;
   }
   for (const rel of [

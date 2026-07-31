@@ -6,6 +6,7 @@ import { basename } from "node:path";
 import type { ScanContext } from "../adapters/types.ts";
 import { fileBytes, mtimeMs } from "../fs-scan.ts";
 import { pathCardId } from "./ids.ts";
+import { underRepo } from "./scope.ts";
 import type { CardScope, FindKind, HostId, IndexCard } from "./types.ts";
 
 export type CardOpts = {
@@ -22,11 +23,8 @@ export type CardOpts = {
 };
 
 export function makeCard(opts: CardOpts, ctx?: ScanContext): IndexCard {
-  const scope =
-    opts.scope ??
-    (opts.repoRoot || (ctx?.repoRoot && opts.path.startsWith(ctx.repoRoot))
-      ? "project"
-      : "user");
+  const inRepo = ctx ? underRepo(opts.path, ctx) : Boolean(opts.repoRoot);
+  const scope = opts.scope ?? (opts.repoRoot || inRepo ? "project" : "user");
   const repo_root =
     scope === "project"
       ? (opts.repoRoot ?? ctx?.repoRoot ?? undefined)

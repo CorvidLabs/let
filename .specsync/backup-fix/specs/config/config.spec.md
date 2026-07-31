@@ -21,15 +21,25 @@ keys cannot be set from project-local config.
 
 | Export | Description |
 |--------|-------------|
+| `loadConfig` | Merge defaults, user `~/.config/let/config.toml`, env, sanitized project `.let/config.toml`. |
+| `userConfigPath` | Path to the user config file. |
+| `projectConfigPath` | Path to project `.let/config.toml` for a cwd. |
+
+### Structs & Enums
+
+| Type | Description |
+|------|-------------|
 | `LetConfig` | find limits, scan policy flags, worktree base_dir, allow_shell_exec. |
 | `LoadedConfig` | config + sources map + resolved user/project paths. |
 | `ConfigSource` | default \| user \| env \| project. |
-| `DEFAULT_LIMIT` | Default find limit (100). |
-| `MAX_LIMIT` | Maximum allowed limit (500). |
+
+### Constants
+
+| Name | Description |
+|------|-------------|
+| `DEFAULT_LIMIT` | 100 |
+| `MAX_LIMIT` | 500 |
 | `DEFAULT_CONFIG` | Safe defaults (shell exec off, include_user_skills true). |
-| `loadConfig` | Merge defaults, user config, env, sanitized project config. |
-| `userConfigPath` | Path to the user config file. |
-| `projectConfigPath` | Path to project `.let/config.toml` for a cwd. |
 
 ## Invariants
 
@@ -42,30 +52,30 @@ keys cannot be set from project-local config.
 ## Behavioral Examples
 
 ```
-Given no config files
-When loadConfig runs
-Then allow_shell_exec is false and include_user_skills is true
+Given a project .let/config.toml with allow_shell_exec = true
+When loadConfig(projectDir) runs
+Then config.allow_shell_exec remains false
 ```
 
 ```
-Given project .let/config.toml sets allow_shell_exec = true
-When loadConfig runs
-Then allow_shell_exec remains false
+Given no config files
+When loadConfig(tempDir) runs
+Then find.default_limit is DEFAULT_LIMIT
 ```
 
 ## Error Cases
 
 | Error | When | Behavior |
 |-------|------|----------|
-| invalid project toml | parse failure | Fall back; ignore project security keys. |
+| missing files | user/project config absent | Silent: defaults (+ env) only. |
+| unreadable TOML lines | malformed lines | Ignored; known keys still apply. |
 
 ## Dependencies
 
-- (none) for security-key policy; filesystem for load.
+- `./paths` - `homeDir` for user config location.
 
 ## Change Log
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1 | 2026-07-30 | Initial config trust model. |
-| 2 | 2026-07-31 | Full export documentation for spec-sync 5.2. |
+| 1 | 2026-07-30 | Initial config trust contract. |

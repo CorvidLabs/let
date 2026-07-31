@@ -16,7 +16,7 @@ import {
 import { codexHome } from "../paths.ts";
 import { makeCard } from "./card-factory.ts";
 import { instructionId, pathCardId } from "./ids.ts";
-import { wantUser } from "./scope.ts";
+import { wantUser, wantUserGlobal } from "./scope.ts";
 import type { IndexCard } from "./types.ts";
 
 export function findCodexAgents(ctx: ScanContext): IndexCard[] {
@@ -48,11 +48,9 @@ export function findCodexAgents(ctx: ScanContext): IndexCard[] {
  * Path-only, shallow: year dirs + first-level children, not full tree dump.
  */
 export function findCodexSessions(ctx: ScanContext): IndexCard[] {
-  if (!wantUser(ctx) && ctx.scope !== "all") {
-    // codex sessions are user-global; only when user catalogs included
-    if (!(ctx.scope === "project" && ctx.config.find.include_user_skills)) {
-      return [];
-    }
+  // Global session tree only under user|all (not project + include_user_skills).
+  if (!wantUserGlobal(ctx)) {
+    return [];
   }
   const cards: IndexCard[] = [];
   const home = codexHome();
@@ -143,7 +141,7 @@ export function findCodexPlugins(ctx: ScanContext): IndexCard[] {
 
 /** memories dir + sqlite stores — path-only, never dump DB. */
 export function findCodexMemory(ctx: ScanContext): IndexCard[] {
-  if (!wantUser(ctx)) {
+  if (!wantUserGlobal(ctx)) {
     return [];
   }
   const cards: IndexCard[] = [];

@@ -15,7 +15,7 @@ import {
 import { cursorHome } from "../paths.ts";
 import { makeCard } from "./card-factory.ts";
 import { skillId } from "./ids.ts";
-import { wantProject, wantUser } from "./scope.ts";
+import { wantProject, wantUser, wantUserGlobal } from "./scope.ts";
 import type { IndexCard } from "./types.ts";
 
 export function findCursorAgents(ctx: ScanContext): IndexCard[] {
@@ -74,9 +74,9 @@ export function findCursorCommands(ctx: ScanContext): IndexCard[] {
   return cards;
 }
 
-/** Chats under ~/.cursor/chats — path-only sessions. */
+/** Chats under ~/.cursor/chats — path-only sessions (user|all only). */
 export function findCursorSessions(ctx: ScanContext): IndexCard[] {
-  if (!wantUser(ctx)) {
+  if (!wantUserGlobal(ctx)) {
     return [];
   }
   const cards: IndexCard[] = [];
@@ -119,9 +119,9 @@ export function findCursorSessions(ctx: ScanContext): IndexCard[] {
   return cards;
 }
 
-/** Plans as tasks (path cards; body allowed on show — markdown plans). */
+/** Plans as tasks (user|all; body allowed on show — markdown plans). */
 export function findCursorTasks(ctx: ScanContext): IndexCard[] {
-  if (!wantUser(ctx)) {
+  if (!wantUserGlobal(ctx)) {
     return [];
   }
   const cards: IndexCard[] = [];

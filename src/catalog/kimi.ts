@@ -276,14 +276,10 @@ export function findKimiAgents(ctx: ScanContext): IndexCard[] {
   return cards;
 }
 
-/** user-history entries as memory (path-only). */
+/** user-history entries as memory (path-only; user|all only). */
 export function findKimiMemory(ctx: ScanContext): IndexCard[] {
   const cards: IndexCard[] = [];
-  const wantUser =
-    ctx.scope === "user" ||
-    ctx.scope === "all" ||
-    (ctx.scope === "project" && ctx.config.find.include_user_skills);
-  if (!wantUser) {
+  if (ctx.scope !== "user" && ctx.scope !== "all") {
     return cards;
   }
   const history = join(kimiHome(), "user-history");

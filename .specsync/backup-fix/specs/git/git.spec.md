@@ -21,7 +21,6 @@ branch, HEAD, and `git worktree list --porcelain` parsing.
 
 | Export | Description |
 |--------|-------------|
-| `GitWorktreeEntry` | path, head?, branch?, bare, detached, locked, prunable. |
 | `safeRealpath` | Realpath or resolved path; null on total failure. |
 | `gitToplevel` | `git rev-parse --show-toplevel` or null. |
 | `gitCommonDir` | Realpath of `git rev-parse --git-common-dir` or null. |
@@ -29,6 +28,12 @@ branch, HEAD, and `git worktree list --porcelain` parsing.
 | `gitHead` | HEAD sha or null. |
 | `gitWorktreeList` | Parsed porcelain entries with realpathed paths. |
 | `mapGitStatus` | Map entry flags to active \| prunable \| locked. |
+
+### Structs & Enums
+
+| Type | Description |
+|------|-------------|
+| `GitWorktreeEntry` | path, head?, branch?, bare, detached, locked, prunable. |
 
 ## Invariants
 

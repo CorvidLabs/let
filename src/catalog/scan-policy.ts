@@ -31,6 +31,9 @@ export const DEFAULT_SCAN_POLICY: ScanPolicy = {
     "oauth_creds.json",
     "google_accounts.json",
     "credentials",
+    "settings.local.json",
+    // Host configs often embed keys; cards may still list paths as path_only.
+    "config.toml",
   ],
 };
 

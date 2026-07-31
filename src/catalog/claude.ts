@@ -16,7 +16,7 @@ import {
 import { claudeHome, projectClaudeDir } from "../paths.ts";
 import { makeCard } from "./card-factory.ts";
 import { pathCardId } from "./ids.ts";
-import { wantProject, wantUser } from "./scope.ts";
+import { wantProject, wantUser, wantUserGlobal } from "./scope.ts";
 import type { IndexCard } from "./types.ts";
 
 function projectClaude(ctx: ScanContext): string | null {
@@ -189,9 +189,9 @@ export function findClaudePlugins(ctx: ScanContext): IndexCard[] {
   return cards;
 }
 
-/** Task session dirs under ~/.claude/tasks (path-only). */
+/** Task session dirs under ~/.claude/tasks (path-only; user|all only). */
 export function findClaudeTasks(ctx: ScanContext): IndexCard[] {
-  if (!wantUser(ctx)) {
+  if (!wantUserGlobal(ctx)) {
     return [];
   }
   const cards: IndexCard[] = [];

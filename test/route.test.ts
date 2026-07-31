@@ -52,4 +52,19 @@ describe("routeSkills dogfood", () => {
     expect(r.hits.length).toBe(0);
     expect(r.top).toBeUndefined();
   });
+
+  test("does not rank host skills on single common description token", async () => {
+    // Without --host agent3md, user/global skills are included. A query like
+    // "find worktrees" must not top-rank a random skill that only contains "find"
+    // in a long description (e.g. docx).
+    const ctx = buildScanContext({ cwd: root, scope: "project", limit: 100 });
+    const r = await routeSkills("find worktrees for this repo", ctx);
+    expect(r.top?.skill.name).not.toBe("docx");
+    // Prefer agent.3md when present in project
+    if (r.top) {
+      expect(
+        r.top.source === "agent3md" || r.top.skill.name.includes("worktree"),
+      ).toBe(true);
+    }
+  });
 });
