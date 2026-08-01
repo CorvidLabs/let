@@ -105,6 +105,9 @@ test("local supervisor details redact known secret-shaped values", () => {
   expect(detail).toContain("token=[REDACTED]");
   expect(detail).toContain("password=[REDACTED]");
   expect(detail).not.toContain("private-value");
+  expect(redactLocalDetail("/Users/leif/Development/private")).toBe(
+    "[LOCAL PATH]",
+  );
 });
 
 test("Fleet page starts by agent and keeps project worktrees collapsed", () => {

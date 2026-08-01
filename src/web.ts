@@ -349,6 +349,10 @@ export function redactLocalDetail(value: string): string {
     .replace(
       /-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g,
       "[REDACTED CERTIFICATE]",
+    )
+    .replace(
+      /\/(?:Users|home)\/[A-Za-z0-9._-]+(?:\/[^\s"'`]+)*/g,
+      "[LOCAL PATH]",
     );
 }
 
@@ -453,13 +457,28 @@ export async function buildFleetSnapshot(
   cwd: string,
   now = Date.now(),
 ): Promise<FleetSnapshot> {
-  const ctx = buildScanContext({ cwd, scope: "all", limit: 48 });
-  const [worktrees, sessions, instructions, skills] = await Promise.all([
+  // Fleet needs one current record per host. A narrow shared result limit can
+  // otherwise hide user-scoped Codex sessions behind project-scoped records.
+  // This remains a bounded Let index query, not a new filesystem scan.
+  const ctx = buildScanContext({ cwd, scope: "all", limit: 300 });
+  const sessionHosts = [
+    "claude",
+    "codex",
+    "grok",
+    "cursor",
+    "gemini",
+    "kimi",
+    "let",
+  ];
+  const [worktrees, sessionResults, instructions, skills] = await Promise.all([
     findAssets("worktrees", ctx),
-    findAssets("sessions", ctx),
+    Promise.all(
+      sessionHosts.map((host) => findAssets("sessions", ctx, { host })),
+    ),
     findAssets("instructions", ctx),
     findAssets("skills", ctx),
   ]);
+  const sessions = { items: sessionResults.flatMap((result) => result.items) };
 
   const instructionCards = instructions.items.slice(0, 8).map((item) => ({
     name: item.name,
@@ -521,6 +540,7 @@ export async function buildFleetSnapshot(
   labelCollidingProjects(repositories, worktreeDetails, worktreeRepoByPath);
 
   const agentsByName = new Map<LiveAgent["agent"], FleetAgentActivity>();
+  const sessionMtimeByAgent = new Map<LiveAgent["agent"], number>();
   for (const session of sessions.items) {
     const adapter = fleetAdapterFor(session);
     if (!adapter) {
@@ -537,35 +557,40 @@ export async function buildFleetSnapshot(
       : undefined;
     const repository = key ? repositories.get(key) : undefined;
     const view = sessionView(session, now);
-    const detail = sessionDetail(session);
-    const candidate: FleetAgentActivity = {
-      agent,
-      status:
-        view.freshness === "live" || view.freshness === "recent"
-          ? "recent"
-          : "history",
-      operation:
-        view.freshness === "stale"
-          ? "Previous session activity"
-          : "Recent session activity",
-      project: worktree?.repo ?? repository?.project ?? null,
-      worktree: worktree?.worktree ?? null,
-      branch: worktree?.branch ?? null,
-      evidence: "Session metadata",
-      lastAction: view.activity,
-      command: null,
-      startedAt: null,
-      latestMessage: detail.latestMessage,
-      recentActivity: detail.recentActivity,
-      detailAvailability: detail.detailAvailability,
-    };
     const existing = agentsByName.get(agent);
+    const candidateMtime = session.mtime_ms ?? 0;
+    const existingMtime = sessionMtimeByAgent.get(agent) ?? 0;
     if (
       !existing ||
       sessionRank(view.freshness) <
-        sessionRank(existing.status === "recent" ? "recent" : "stale")
+        sessionRank(existing.status === "recent" ? "recent" : "stale") ||
+      (sessionRank(view.freshness) ===
+        sessionRank(existing.status === "recent" ? "recent" : "stale") &&
+        candidateMtime > existingMtime)
     ) {
-      agentsByName.set(agent, candidate);
+      const detail = sessionDetail(session);
+      agentsByName.set(agent, {
+        agent,
+        status:
+          view.freshness === "live" || view.freshness === "recent"
+            ? "recent"
+            : "history",
+        operation:
+          view.freshness === "stale"
+            ? "Previous session activity"
+            : "Recent session activity",
+        project: worktree?.repo ?? repository?.project ?? null,
+        worktree: worktree?.worktree ?? null,
+        branch: worktree?.branch ?? null,
+        evidence: "Session metadata",
+        lastAction: view.activity,
+        command: null,
+        startedAt: null,
+        latestMessage: detail.latestMessage,
+        recentActivity: detail.recentActivity,
+        detailAvailability: detail.detailAvailability,
+      });
+      sessionMtimeByAgent.set(agent, candidateMtime);
     }
   }
 

@@ -94,7 +94,7 @@ export function findCodexSessions(ctx: ScanContext): IndexCard[] {
                 meta: { source: `codex.${rel}`, level: "child" },
               }),
             );
-            // A current Codex session normally lives at year/month/rollout.jsonl.
+            // A current Codex session normally lives at year/month/day/rollout.jsonl.
             // Index that final file level as well so local Fleet can show its
             // already-indexed, redacted latest prompt alongside a live process.
             if (isDirectory(child)) {
@@ -103,6 +103,27 @@ export function findCodexSessions(ctx: ScanContext): IndexCard[] {
                 50,
               )) {
                 if (!session.endsWith(".jsonl")) {
+                  if (!isDirectory(session)) {
+                    continue;
+                  }
+                  for (const rollout of listChildPaths(
+                    session,
+                    ctx.policy,
+                  ).slice(0, 50)) {
+                    if (!rollout.endsWith(".jsonl")) {
+                      continue;
+                    }
+                    cards.push(
+                      makeCard({
+                        kind: "sessions",
+                        host: "codex",
+                        path: rollout,
+                        scope: "user",
+                        pathOnly: true,
+                        meta: { source: `codex.${rel}`, level: "session" },
+                      }),
+                    );
+                  }
                   continue;
                 }
                 cards.push(
