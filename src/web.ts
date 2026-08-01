@@ -54,6 +54,18 @@ export type FleetAgentActivity = {
   latestMessage: string | null;
   recentActivity: string[];
   detailAvailability: "available" | "unavailable";
+  phase?: string;
+  heartbeatAt?: string | null;
+  lastOutputAt?: string | null;
+  confidence?: "high" | "medium" | "low";
+  git?: FleetGitEvidence | null;
+};
+
+export type FleetGitEvidence = {
+  dirty: boolean;
+  ahead: number | null;
+  behind: number | null;
+  specSyncChange: string | null;
 };
 
 export type FleetWorktree = {
@@ -321,6 +333,38 @@ function gitLocation(
     repo: basename(rootPath),
     worktree: basename(cwd),
     branch: new TextDecoder().decode(branch.stdout).trim() || "Detached",
+  };
+}
+
+export function gitEvidence(
+  cwd: string,
+  command: string | undefined,
+): FleetGitEvidence | null {
+  const status = Bun.spawnSync({
+    cmd: ["git", "-C", cwd, "status", "--porcelain"],
+  });
+  if (status.exitCode !== 0) return null;
+  const counts = Bun.spawnSync({
+    cmd: [
+      "git",
+      "-C",
+      cwd,
+      "rev-list",
+      "--left-right",
+      "--count",
+      "@{upstream}...HEAD",
+    ],
+  });
+  const values = new TextDecoder()
+    .decode(counts.stdout)
+    .trim()
+    .split(/\s+/)
+    .map(Number);
+  return {
+    dirty: new TextDecoder().decode(status.stdout).trim().length > 0,
+    behind: Number.isFinite(values[0]) ? values[0] : null,
+    ahead: Number.isFinite(values[1]) ? values[1] : null,
+    specSyncChange: command?.match(/CHG-\d+/i)?.[0] ?? null,
   };
 }
 
@@ -632,6 +676,14 @@ export async function buildFleetSnapshot(
         agent.command || prior?.detailAvailability === "available"
           ? "available"
           : "unavailable",
+      phase:
+        agent.operation === "Verifying a Spec Sync change"
+          ? "Verification"
+          : "Active work",
+      heartbeatAt: new Date(now).toISOString(),
+      lastOutputAt: prior?.lastOutputAt ?? null,
+      confidence: "high",
+      git: gitEvidence(agent.cwd, agent.command),
     });
     return working;
   });
@@ -763,7 +815,7 @@ export function fleetLiveChangeAnnouncement(
 }
 
 export function fleetHtml(): string {
-  const supervisor = fleetSupervisorHtmlV5();
+  const supervisor = fleetSupervisorHtmlV6();
   if (supervisor.length > 0) {
     return supervisor;
   }
@@ -797,6 +849,13 @@ function fleetSupervisorHtmlV5(): string {
   return fleetSupervisorHtmlV4().replace(
     "ui.openKeys=new Set([...document.querySelectorAll('details[data-fleet-key][open]')].map(panel=>panel.dataset.fleetKey));",
     "const renderedKeys=[...document.querySelectorAll('details[data-fleet-key]')].map(panel=>panel.dataset.fleetKey),currentlyOpenKeys=[...document.querySelectorAll('details[data-fleet-key][open]')].map(panel=>panel.dataset.fleetKey);ui.openKeys=new Set([...ui.openKeys].filter(key=>!renderedKeys.includes(key)).concat(currentlyOpenKeys));",
+  );
+}
+
+function fleetSupervisorHtmlV6(): string {
+  return fleetSupervisorHtmlV5().replace(
+    "<div class=\"row\"><span>Detail source</span><span>'+e(a.evidence)+' · '+e(a.detailAvailability)+'</span></div>",
+    "<div class=\"row\"><span>Evidence</span><span>'+e(a.evidence)+' · '+e(a.confidence||'low')+' confidence · heartbeat '+e(a.heartbeatAt||'Unavailable')+'</span></div><div class=\"row\"><span>Git</span><span>'+e(a.git?((a.git.dirty?'dirty':'clean')+' · ahead '+(a.git.ahead??'unknown')+' · behind '+(a.git.behind??'unknown')+(a.git.specSyncChange?' · '+a.git.specSyncChange:'')):'Unavailable')+'</span></div>",
   );
 }
 

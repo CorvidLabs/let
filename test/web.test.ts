@@ -7,6 +7,7 @@ import {
   fleetHtml,
   fleetLiveChangeAnnouncement,
   fleetStateForSessions,
+  gitEvidence,
   mergeFleetOpenKeys,
   parseLocalAgentProcessLines,
   redactLocalDetail,
@@ -182,6 +183,12 @@ test("a child verifier context overrides its agent parent worktree", () => {
     cwd: "/work/spec-sync/.claude/worktrees/fix-sandbox-14-16",
     operation: "Verifying a Spec Sync change",
   });
+});
+
+test("Git evidence reports a Spec Sync change when the command names one", () => {
+  const evidence = gitEvidence(process.cwd(), "specsync change check CHG-0068");
+  expect(evidence?.specSyncChange).toBe("CHG-0068");
+  expect(typeof evidence?.dirty).toBe("boolean");
 });
 
 test("stale session history never appears as recent activity", () => {

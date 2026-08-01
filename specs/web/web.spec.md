@@ -35,6 +35,8 @@ workflow engine or a remote-control surface.
 | `LiveAgent` | Whitelisted local CLI agent with an internal current working directory. |
 | `WorkingAgent` | Sanitized live agent record matched to a repo/worktree or marked unassigned. |
 | `FleetAgentActivity` | Safe agent-focused status derived from a local process or session metadata. |
+| `FleetGitEvidence` | Local Git dirty, ahead/behind, and active Spec Sync change evidence. |
+| `gitEvidence` | Read local Git evidence for a resolved agent worktree. |
 | `selectAgentWorkContext` | Prefer a bounded child verifier worktree over its agent parent process context. |
 | `redactLocalDetail` | Redact known token, credential, and environment-value patterns before local display. |
 | `fleetContextLabels` | Build explicit project, worktree, and branch labels for agent supervision. |
