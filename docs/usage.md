@@ -52,10 +52,10 @@ fledge let web
 ```
 
 The dashboard binds only to `127.0.0.1` (default port `8731`) and refreshes
-from Let's structured index cards. It displays worktrees, provider/session
-activity, instructions, and skills. It never serves session transcripts, full
-filesystem paths, raw terminal output, secrets, shell execution, or agent
-controls.
+from Let's structured index cards. It puts agents first, with projects as a
+secondary view. Expand an agent to inspect its redacted task context, command,
+latest prompt or update, timestamps, and recent session output when locally
+available. It never provides controls, shell execution, or unredacted secrets.
 
 ### `let history` (alias: `usage`)
 

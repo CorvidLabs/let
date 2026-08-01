@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { runLet } from "../src/run.ts";
 import {
   buildFleetSnapshot,
+  fleetContextLabels,
   fleetHtml,
   fleetStateForSessions,
   parseLocalAgentProcessLines,
@@ -17,7 +18,7 @@ describe("web fleet snapshot", () => {
     expect(JSON.stringify(snapshot.workingNow)).not.toContain('"cwd"');
     const repositories = [...snapshot.recentActivity, ...snapshot.history];
     expect(repositories.length).toBeLessThanOrEqual(48);
-    expect(snapshot.policy).toContain("No session transcripts");
+    expect(snapshot.policy).toContain("redacted local task context");
     for (const repository of repositories) {
       expect(JSON.stringify(repository)).not.toContain("/Users/");
       expect(repository.skills.length).toBeLessThanOrEqual(8);
@@ -37,7 +38,19 @@ test("Fleet API and HTML expose local supervision details without internal CWD k
     expect(response).not.toContain('"pid"');
   }
   expect(page).toContain("Local-only supervisor view");
-  expect(page).toContain("Latest prompt or status");
+  expect(page).toContain("Latest prompt or update");
+  expect(page).toContain("Recent output");
+  expect(page).toContain("Show supervision details");
+});
+
+test("agent context keeps a shared project and worktree from repeating", () => {
+  expect(
+    fleetContextLabels({
+      project: "let",
+      worktree: "let",
+      branch: "feat/fleet",
+    }),
+  ).toEqual(["Project: let", "Branch: feat/fleet"]);
 });
 
 test("local supervisor details redact known secret-shaped values", () => {

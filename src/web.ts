@@ -185,94 +185,101 @@ export function selectAgentWorkContext(
 }
 
 function readLiveAgents(): LiveAgent[] {
-  const processList = Bun.spawnSync({
-    cmd: ["ps", "-axo", "pid=,ppid=,comm=,command="],
-  });
-  if (processList.exitCode !== 0) {
+  try {
+    const processList = Bun.spawnSync({
+      cmd: ["ps", "-axo", "pid=,ppid=,comm=,command="],
+    });
+    if (processList.exitCode !== 0) {
+      return [];
+    }
+    const providers: Record<string, LiveAgent["agent"]> = {
+      grok: "Grok",
+      claude: "Claude",
+      codex: "Codex",
+      cursor: "Cursor",
+    };
+    const rows = new TextDecoder()
+      .decode(processList.stdout)
+      .split("\n")
+      .flatMap((line) => {
+        const match = line.trim().match(/^(\d+)\s+(\d+)\s+(\S+)\s+(.+)$/);
+        return match?.[1] && match[2] && match[3] && match[4]
+          ? [
+              {
+                pid: match[1],
+                parentPid: match[2],
+                executable: match[3],
+                command: match[4],
+              },
+            ]
+          : [];
+      });
+    const cwdForPid = (pid: string): string | null => {
+      const cwd = Bun.spawnSync({
+        cmd: ["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"],
+      });
+      const line = new TextDecoder()
+        .decode(cwd.stdout)
+        .split("\n")
+        .find((item) => item.startsWith("n"));
+      return line ? line.slice(1) : null;
+    };
+    const isProjectCwd = (cwd: string): boolean =>
+      Bun.spawnSync({
+        cmd: ["git", "-C", cwd, "rev-parse", "--is-inside-work-tree"],
+      }).exitCode === 0;
+    return rows
+      .flatMap((row) => {
+        const agent = providers[basename(row.executable).toLowerCase()];
+        const rootCwd = agent ? cwdForPid(row.pid) : null;
+        if (!agent || !rootCwd) {
+          return [];
+        }
+        if (
+          (agent === "Codex" || agent === "Cursor") &&
+          !isProjectCwd(rootCwd)
+        ) {
+          return [];
+        }
+        const descendants: Array<{ command: string; cwd: string | null }> = [];
+        const pending = [row.pid];
+        while (pending.length > 0 && descendants.length < 64) {
+          const parentPid = pending.shift();
+          for (const child of rows.filter(
+            (candidate) => candidate.parentPid === parentPid,
+          )) {
+            pending.push(child.pid);
+            descendants.push({
+              command: child.command,
+              cwd: cwdForPid(child.pid),
+            });
+          }
+        }
+        const context = selectAgentWorkContext(rootCwd, descendants);
+        const verifier = descendants.findLast(
+          (child) =>
+            child.cwd === context.cwd &&
+            /\bspecsync\b[\s\S]*\bchange\s+check\b/i.test(child.command),
+        );
+        const started = Bun.spawnSync({
+          cmd: ["ps", "-p", row.pid, "-o", "lstart="],
+        });
+        return [
+          {
+            agent,
+            ...context,
+            command: verifier?.command ?? row.command,
+            startedAt:
+              started.exitCode === 0
+                ? new TextDecoder().decode(started.stdout).trim() || undefined
+                : undefined,
+          },
+        ];
+      })
+      .slice(0, 20);
+  } catch {
     return [];
   }
-  const providers: Record<string, LiveAgent["agent"]> = {
-    grok: "Grok",
-    claude: "Claude",
-    codex: "Codex",
-    cursor: "Cursor",
-  };
-  const rows = new TextDecoder()
-    .decode(processList.stdout)
-    .split("\n")
-    .flatMap((line) => {
-      const match = line.trim().match(/^(\d+)\s+(\d+)\s+(\S+)\s+(.+)$/);
-      return match?.[1] && match[2] && match[3] && match[4]
-        ? [
-            {
-              pid: match[1],
-              parentPid: match[2],
-              executable: match[3],
-              command: match[4],
-            },
-          ]
-        : [];
-    });
-  const cwdForPid = (pid: string): string | null => {
-    const cwd = Bun.spawnSync({
-      cmd: ["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"],
-    });
-    const line = new TextDecoder()
-      .decode(cwd.stdout)
-      .split("\n")
-      .find((item) => item.startsWith("n"));
-    return line ? line.slice(1) : null;
-  };
-  const isProjectCwd = (cwd: string): boolean =>
-    Bun.spawnSync({
-      cmd: ["git", "-C", cwd, "rev-parse", "--is-inside-work-tree"],
-    }).exitCode === 0;
-  return rows
-    .flatMap((row) => {
-      const agent = providers[basename(row.executable).toLowerCase()];
-      const rootCwd = agent ? cwdForPid(row.pid) : null;
-      if (!agent || !rootCwd) {
-        return [];
-      }
-      if ((agent === "Codex" || agent === "Cursor") && !isProjectCwd(rootCwd)) {
-        return [];
-      }
-      const descendants: Array<{ command: string; cwd: string | null }> = [];
-      const pending = [row.pid];
-      while (pending.length > 0 && descendants.length < 64) {
-        const parentPid = pending.shift();
-        for (const child of rows.filter(
-          (candidate) => candidate.parentPid === parentPid,
-        )) {
-          pending.push(child.pid);
-          descendants.push({
-            command: child.command,
-            cwd: cwdForPid(child.pid),
-          });
-        }
-      }
-      const context = selectAgentWorkContext(rootCwd, descendants);
-      const verifier = descendants.findLast(
-        (child) =>
-          child.cwd === context.cwd &&
-          /\bspecsync\b[\s\S]*\bchange\s+check\b/i.test(child.command),
-      );
-      const started = Bun.spawnSync({
-        cmd: ["ps", "-p", row.pid, "-o", "lstart="],
-      });
-      return [
-        {
-          agent,
-          ...context,
-          command: verifier?.command ?? row.command,
-          startedAt:
-            started.exitCode === 0
-              ? new TextDecoder().decode(started.stdout).trim() || undefined
-              : undefined,
-        },
-      ];
-    })
-    .slice(0, 20);
 }
 
 function gitLocation(
@@ -338,6 +345,29 @@ export function redactLocalDetail(value: string): string {
       /-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g,
       "[REDACTED CERTIFICATE]",
     );
+}
+
+/** Return concise context labels without repeating a project as its worktree. */
+export function fleetContextLabels(
+  agent: Pick<FleetAgentActivity, "project" | "worktree" | "branch">,
+): string[] {
+  const project = agent.project?.trim();
+  const worktree = agent.worktree?.trim();
+  const branch = agent.branch?.trim();
+  const labels: string[] = [];
+  if (project) {
+    labels.push(`Project: ${project}`);
+  }
+  if (
+    worktree &&
+    worktree.toLocaleLowerCase() !== project?.toLocaleLowerCase()
+  ) {
+    labels.push(`Worktree: ${worktree}`);
+  }
+  if (branch) {
+    labels.push(`Branch: ${branch}`);
+  }
+  return labels;
 }
 
 function sessionText(value: unknown): string[] {
@@ -651,7 +681,7 @@ export async function buildFleetSnapshot(
     agents,
     liveProcessDetection: "local-process",
     policy:
-      "Read-only local index. No session transcripts, paths, secrets, terminal output, or agent controls are exposed.",
+      "Read-only local index. Expanded cards show redacted local task context and recent session text when available. No controls are exposed.",
   };
 }
 
@@ -668,7 +698,7 @@ export function fleetHtml(): string {
 function fleetSupervisorHtml(): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Let Fleet</title><style>
   :root{--ink:#eef7f6;--muted:#a8b7bc;--ground:#10151a;--panel:#182128;--line:#31404a;--aqua:#59d7cb;--lime:#afe84c}*{box-sizing:border-box}body{margin:0;background:var(--ground);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,sans-serif}main{max-width:960px;margin:auto;padding:28px 20px}h1{margin:3px 0;font-size:34px}.eyebrow,.meta{font:12px ui-monospace,monospace;color:var(--muted)}.eyebrow{letter-spacing:.12em;color:var(--aqua);text-transform:uppercase}.local{margin:18px 0;padding:11px 13px;border-left:3px solid var(--aqua);background:#153035;color:var(--ink)}.views{display:flex;gap:8px;margin:18px 0}.view{border:1px solid var(--line);border-radius:999px;padding:8px 12px;background:transparent;color:var(--muted);font:600 12px ui-monospace,monospace}.view[aria-pressed="true"]{background:var(--aqua);color:#112426;border-color:var(--aqua)}.view:focus-visible,summary:focus-visible{outline:3px solid var(--aqua);outline-offset:2px}.card{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:10px 0;padding:15px}.card.working{border-left:3px solid var(--lime)}.line{font-size:18px;font-weight:680}.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #27353d}.row span:last-child{color:var(--muted)}details summary{cursor:pointer;color:var(--muted);padding:10px 0}.output{white-space:pre-wrap;overflow-wrap:anywhere;color:#cdd9d9;background:#111a20;padding:10px;border-radius:6px;font:12px/1.4 ui-monospace,monospace}.notice{color:var(--muted);font-size:12px;margin-top:20px}@media(max-width:740px){main{padding:20px 12px}.row{display:block}.row span{display:block;margin:3px 0}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}</style></head><body><main><div class="eyebrow">Let / local supervisor</div><h1>Fleet activity</h1><div class="meta" id="stamp">Loading…</div><aside class="local"><strong>Local-only supervisor view.</strong> Details are served only from this machine. Known token, credential, and environment-value patterns are redacted.</aside><nav class="views" aria-label="Fleet view"><button class="view" data-view="agents" aria-pressed="true">By agent</button><button class="view" data-view="projects" aria-pressed="false">By project</button></nav><div id="app"></div><p class="notice" id="notice"></p></main><script>
-  let fleet={agents:[],recentActivity:[],history:[]},view='agents';const e=s=>{const d=document.createElement('div');d.textContent=String(s??'Unavailable');return d.innerHTML};const human=s=>String(s||'Unassigned running agent').replace(/[-_]+/g,' ').replace(/\\b\\w/g,c=>c.toUpperCase());const plural=(n,w)=>n+' '+w+(n===1?'':'s');const agent=a=>{const project=human(a.project),same=a.worktree&&human(a.worktree)===project,details='<details><summary>Local supervision details</summary><div class="row"><span>Current command</span><span>'+e(a.command||'Unavailable')+'</span></div><div class="row"><span>Started</span><span>'+e(a.startedAt||'Unavailable')+'</span></div><div class="row"><span>Latest prompt or status</span><span>'+e(a.latestMessage||'Unavailable')+'</span></div><div class="row"><span>Detail source</span><span>'+e(a.evidence)+' · '+e(a.detailAvailability)+'</span></div>'+(a.recentActivity.length?'<div class="output">'+a.recentActivity.map(e).join('\\n\\n')+'</div>':'<p class="meta">Recent activity unavailable.</p>')+'</details>';return '<article class="card '+e(a.status)+'"><div class="line">'+e(a.agent)+' — '+e(a.operation)+'</div><div class="row"><span>Project · '+e(project)+'</span><span>'+e(a.status==='working'?'Running locally':a.status==='recent'?'Recent session activity':'Stale session activity')+'</span></div><div class="row">'+(same?'':a.worktree?'<span>Worktree · '+e(a.worktree)+'</span>':'')+(a.branch?'<span>Branch · '+e(a.branch)+'</span>':'')+'<span>Last update · '+e(a.lastAction)+'</span></div>'+details+'</article>'};const project=r=>'<details class="card"><summary><strong>'+e(human(r.project))+'</strong> · '+e(plural(r.worktrees.length,'worktree'))+'</summary>'+r.worktrees.map(w=>'<div class="row"><span>'+e(w.worktree)+'</span><span>'+e(w.branch)+'</span></div>').join('')+'</details>';function render(){const projects=[...fleet.recentActivity,...fleet.history];document.querySelector('#stamp').textContent=plural(fleet.agents.filter(a=>a.status==='working').length,'agent')+' working · '+plural(projects.length,'project');document.querySelector('#notice').textContent=fleet.policy;document.querySelector('#app').innerHTML=view==='agents'?fleet.agents.map(agent).join('')||'<p class="meta">No local agent or session metadata is available.</p>':projects.map(project).join('')||'<p class="meta">No projects are available.</p>';document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view=button.dataset.view;document.querySelectorAll('[data-view]').forEach(item=>item.setAttribute('aria-pressed',String(item.dataset.view===view)));render()}))}async function refresh(){fleet=await fetch('/api/fleet').then(r=>r.json());render()}refresh();setInterval(refresh,5000);</script></body></html>`;
+  let fleet={agents:[],recentActivity:[],history:[]},view='agents';const e=s=>{const d=document.createElement('div');d.textContent=String(s??'Unavailable');return d.innerHTML};const human=s=>String(s||'Unassigned running agent').replace(/[-_]+/g,' ').replace(/\\b\\w/g,c=>c.toUpperCase());const plural=(n,w)=>n+' '+w+(n===1?'':'s');const context=a=>{const project=a.project?'<span>Project · '+e(human(a.project))+'</span>':'';const worktree=a.worktree&&String(a.worktree).toLowerCase()!==String(a.project||'').toLowerCase()?'<span>Worktree · '+e(a.worktree)+'</span>':'';const branch=a.branch?'<span>Branch · '+e(a.branch)+'</span>':'';return project+worktree+branch||'<span>Context unavailable</span>'};const agent=a=>{const contextText=[a.project,a.worktree&&String(a.worktree).toLowerCase()!==String(a.project||'').toLowerCase()?a.worktree:null,a.branch].filter(Boolean).join(' · ');const details='<details><summary>Show supervision details</summary><div class="row"><span>Task</span><span>'+e(a.operation)+'</span></div><div class="row"><span>Context</span><span>'+e(contextText||'Unavailable')+'</span></div><div class="row"><span>Current command</span><span>'+e(a.command||'Unavailable')+'</span></div><div class="row"><span>Started</span><span>'+e(a.startedAt||'Unavailable')+'</span></div><div class="row"><span>Latest prompt or update</span><span>'+e(a.latestMessage||'Unavailable')+'</span></div><div class="row"><span>Detail source</span><span>'+e(a.evidence)+' · '+e(a.detailAvailability)+'</span></div>'+(a.recentActivity.length?'<div><p class="meta">Recent output</p><div class="output">'+a.recentActivity.map(e).join('\\n\\n')+'</div></div>':'<p class="meta">Recent output unavailable.</p>')+'</details>';return '<article class="card '+e(a.status)+'"><div class="line">'+e(a.agent)+' · '+e(a.status==='working'?'Working now':a.status==='recent'?'Recent activity':'Earlier activity')+'</div><div class="row"><span>'+e(a.operation)+'</span><span>Last update · '+e(a.lastAction)+'</span></div><div class="row">'+context(a)+'</div>'+details+'</article>'};const project=r=>'<details class="card"><summary><strong>'+e(human(r.project))+'</strong> · '+e(plural(r.worktrees.length,'worktree'))+'</summary>'+r.worktrees.map(w=>'<div class="row"><span>'+e(w.worktree)+'</span><span>'+e(w.branch)+'</span></div>').join('')+'</details>';function render(){const projects=[...fleet.recentActivity,...fleet.history];document.querySelector('#stamp').textContent=plural(fleet.agents.filter(a=>a.status==='working').length,'agent')+' working · '+plural(projects.length,'project');document.querySelector('#notice').textContent=fleet.policy;document.querySelector('#app').innerHTML=view==='agents'?fleet.agents.map(agent).join('')||'<p class="meta">No local agent or session metadata is available.</p>':projects.map(project).join('')||'<p class="meta">No projects are available.</p>';document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view=button.dataset.view;document.querySelectorAll('[data-view]').forEach(item=>item.setAttribute('aria-pressed',String(item.dataset.view===view)));render()}))}async function refresh(){fleet=await fetch('/api/fleet').then(r=>r.json());render()}refresh();setInterval(refresh,5000);</script></body></html>`;
 }
 
 function _previousFleetHtml(): string {
