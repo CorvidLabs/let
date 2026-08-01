@@ -20,6 +20,7 @@ import { runDoctor } from "./doctor.ts";
 import { type Envelope, LET_VERSION, withEnvelope } from "./envelope.ts";
 import { LetError } from "./errors.ts";
 import { runMcpServe } from "./mcp/serve.ts";
+import { startFleetWeb } from "./web.ts";
 import { initLetWorkbed } from "./workbed/init.ts";
 import {
   memoryDelete,
@@ -102,6 +103,7 @@ Discovery:
   let history [--scope project|user|all] [--cwd <path>] [--json]
   let skill route|list|get <…> [--json]
   let route <text>                 # alias for skill route
+  let web [--port N] [--cwd <path>] # local read-only Fleet dashboard
 
 Workbed:
   let init [--cwd <path>] [--json]
@@ -152,6 +154,8 @@ export type RunResult = {
   /** Full text to print (help plain text, or JSON envelope). */
   text: string;
   envelope?: Envelope;
+  /** A local server owns the event loop; command entry must not call process.exit. */
+  keepAlive?: boolean;
 };
 
 /**
@@ -206,6 +210,37 @@ export async function runLet(
     }
     await runMcpServe();
     return { code: 0, text: "" };
+  }
+
+  if (command === "web") {
+    const portRaw = flagStr(parsed.flags, "port");
+    const port = portRaw ? Number(portRaw) : undefined;
+    if (
+      portRaw &&
+      (!Number.isInteger(port) || (port ?? 0) < 1 || (port ?? 0) > 65535)
+    ) {
+      const bad = await withEnvelope("web", async () => {
+        throw new LetError(
+          "validation",
+          "--port must be an integer from 1 to 65535",
+          { port: portRaw },
+        );
+      });
+      return {
+        code: exitCodeForEnvelope(bad),
+        text: `${JSON.stringify(bad, null, 2)}\n`,
+        envelope: bad,
+      };
+    }
+    const dashboard = startFleetWeb({
+      cwd: flagStr(parsed.flags, "cwd") ?? defaults.cwd ?? process.cwd(),
+      port,
+    });
+    return {
+      code: 0,
+      text: `Let Fleet is running at ${dashboard.url}\nRead-only local index: no transcripts, shell access, or agent controls.\n`,
+      keepAlive: true,
+    };
   }
 
   const envelope = await withEnvelope(command, async () => {

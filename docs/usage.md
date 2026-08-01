@@ -41,6 +41,22 @@ for every kind.
 
 All commands accept `--json` (default machine path for agents).
 
+### `let web`
+
+Start the local, read-only Fleet dashboard.
+
+```bash
+let web
+let web --port 8732
+fledge let web
+```
+
+The dashboard binds only to `127.0.0.1` (default port `8731`) and refreshes
+from Let's structured index cards. It displays worktrees, provider/session
+activity, instructions, and skills. It never serves session transcripts, full
+filesystem paths, raw terminal output, secrets, shell execution, or agent
+controls.
+
 ### `let history` (alias: `usage`)
 
 Rank hosts and projects by session activity (path-only, no transcripts).
