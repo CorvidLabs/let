@@ -3,6 +3,7 @@ import { runLet } from "../src/run.ts";
 import {
   buildFleetSnapshot,
   fleetStateForSessions,
+  fleetHtml,
   parseLocalAgentProcessLines,
 } from "../src/web.ts";
 
@@ -12,6 +13,7 @@ describe("web fleet snapshot", () => {
     expect(snapshot.source).toBe("let");
     expect(snapshot.liveProcessDetection).toBe("local-process");
     expect(JSON.stringify(snapshot.workingNow)).not.toContain("/Users/");
+    expect(JSON.stringify(snapshot.workingNow)).not.toContain('"cwd"');
     const repositories = [...snapshot.recentActivity, ...snapshot.history];
     expect(repositories.length).toBeLessThanOrEqual(48);
     expect(snapshot.policy).toContain("No session transcripts");
@@ -22,6 +24,16 @@ describe("web fleet snapshot", () => {
       expect(repository.worktrees.length).toBeGreaterThan(0);
     }
   });
+});
+
+test("Fleet API and HTML never expose a process working directory", async () => {
+  const api = JSON.stringify(await buildFleetSnapshot(process.cwd(), Date.now()));
+  const page = fleetHtml();
+  for (const response of [api, page]) {
+    expect(response).not.toContain('"cwd"');
+    expect(response).not.toContain("/Users/");
+    expect(response).not.toContain("…/");
+  }
 });
 
 test("stale session history never appears as recent activity", () => {

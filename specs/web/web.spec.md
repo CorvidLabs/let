@@ -23,6 +23,7 @@ workflow engine or a remote-control surface.
 |--------|-------------|
 | `buildFleetSnapshot` | Build a bounded, metadata-only Fleet snapshot from Let catalog APIs. |
 | `fleetStateForSessions` | Classify observed heartbeats as Recent activity or History. |
+| `fleetHtml` | Render the privacy-bounded local Fleet page. |
 | `startFleetWeb` | Start the local-only web server and return its URL and stop handle. |
 | `FleetFreshness` | One of live, recent, stale, or unknown activity states. |
 | `FleetSession` | Sanitized provider, session label, and bounded freshness metadata. |
@@ -31,7 +32,6 @@ workflow engine or a remote-control surface.
 | `FleetRepository` | Repository-first collection of worktrees and secondary session evidence. |
 | `LiveAgent` | Whitelisted local CLI agent with an internal current working directory. |
 | `WorkingAgent` | Sanitized live agent record matched to a repo/worktree or marked unassigned. |
-| `compactCwd` | Reduce a local cwd to a short display suffix. |
 | `parseLocalAgentProcessLines` | Parse only whitelisted agent CLI processes and resolve their cwd internally. |
 | `FleetSnapshot` | Sanitized rows, bounded session metadata, refresh interval, and policy. |
 
@@ -43,10 +43,10 @@ workflow engine or a remote-control surface.
    secrets, browser shell endpoints, or agent-control actions.
 4. Repository cards group worktrees first; sessions remain secondary evidence.
 5. Working now comes only from a local process probe with exact agent CLI executable allowlist and cwd resolution. Session timestamps never prove a process is running.
-6. Unmapped live processes are surfaced as Unassigned running agent with only a compact cwd display.
-6. Worktrees, sessions, instructions, and skills are capped before rendering.
-7. Session-only records are bounded and include metadata only.
-6. The normal CLI exits after ordinary commands, but remains alive while `web`
+6. Unmapped live processes are surfaced as Unassigned running agent and agent type only; their current working directories never leave the process probe.
+7. Worktrees, sessions, instructions, and skills are capped before rendering.
+8. Session-only records are bounded and include metadata only.
+9. The normal CLI exits after ordinary commands, but remains alive while `web`
    owns the local server.
 
 ## Behavioral Examples

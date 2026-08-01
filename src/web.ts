@@ -24,7 +24,7 @@ export type LiveAgent = {
   cwd: string;
 };
 
-export type WorkingAgent = LiveAgent & {
+export type WorkingAgent = Omit<LiveAgent, "cwd"> & {
   repo: string;
   worktree: string | null;
   branch: string | null;
@@ -109,11 +109,6 @@ function repositoryPath(card: IndexCard): string {
   return card.repo_root && basename(card.repo_root) !== "let"
     ? card.repo_root
     : card.path;
-}
-
-export function compactCwd(cwd: string): string {
-  const parts = cwd.split("/").filter(Boolean);
-  return parts.length > 3 ? `…/${parts.slice(-3).join("/")}` : cwd;
 }
 
 export function parseLocalAgentProcessLines(
@@ -291,7 +286,6 @@ export async function buildFleetSnapshot(
     const details = match?.[1] ?? gitLocation(agent.cwd);
     return {
       agent: agent.agent,
-      cwd: compactCwd(agent.cwd),
       repo: details?.repo ?? "Unassigned running agent",
       worktree: details?.worktree ?? null,
       branch: details?.branch ?? null,
@@ -345,10 +339,10 @@ export async function buildFleetSnapshot(
   };
 }
 
-function html(): string {
+export function fleetHtml(): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Let Fleet</title><style>
   :root{--bg:#10151a;--panel:#182128;--line:#31404a;--text:#edf5f5;--muted:#9aabb1;--aqua:#59d7cb;--lime:#afe84c;--yellow:#f1c967}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#17343a 0,transparent 32rem),var(--bg);color:var(--text);font:14px/1.45 ui-sans-serif,system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:32px 24px}header{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:18px}.eyebrow{font:600 11px ui-monospace,monospace;letter-spacing:.13em;color:var(--aqua);text-transform:uppercase}h1{font-size:36px;letter-spacing:-.04em;margin:4px 0}h2{margin:4px 0;font-size:20px}p{color:var(--muted);max-width:660px;margin:0}.stamp{color:var(--muted);font:12px ui-monospace,monospace;text-align:right}.section{margin:26px 0 10px;display:flex;align-items:baseline;gap:10px}.section h2{font-size:15px;letter-spacing:.02em}.section p{font-size:12px}.repo{background:rgba(24,33,40,.9);border:1px solid var(--line);border-radius:10px;margin:10px 0;overflow:hidden}.repo-head{width:100%;padding:15px;background:transparent;border:0;color:var(--text);display:flex;justify-content:space-between;align-items:center;text-align:left;cursor:pointer}.repo-head:hover{background:#1d3035}.project{font-weight:700}.sub{display:block;color:var(--muted);font:12px ui-monospace,monospace;margin-top:2px}.dot{display:inline-flex;gap:7px;align-items:center;color:var(--muted);font:12px ui-monospace,monospace}.dot:before{content:'';width:8px;height:8px;border-radius:50%;background:var(--muted)}.dot.active:before{background:var(--aqua);box-shadow:0 0 0 4px #59d7cb20}.dot.recent:before{background:var(--lime)}.dot.history:before{background:var(--yellow)}table{width:100%;border-collapse:collapse}th{text-align:left;padding:8px 15px;color:var(--muted);font:600 10px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase}td{padding:10px 15px;border-top:1px solid #27353d;font-size:13px}.worktree{font-family:ui-monospace,monospace}.details{border-top:1px solid #27353d;padding:0 15px}.details summary{padding:11px 0;color:var(--muted);cursor:pointer;font-size:12px}.session{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-top:1px solid #27353d;font:12px ui-monospace,monospace}.session span:last-child{color:var(--muted)}.empty{color:var(--muted);font-size:13px;padding:13px 0}.notice{margin-top:22px;color:var(--muted);font-size:12px}@media(max-width:740px){main{padding:22px 12px}header{display:block}.stamp{text-align:left;margin-top:12px}th:nth-child(1),td:nth-child(1){display:none}h1{font-size:30px}}</style></head><body><main><header><div><div class="eyebrow">Let / local observatory</div><h1>Fleet activity</h1><p>Repositories first. Worktrees and branches are the primary unit; session metadata is secondary evidence, never a claim that stale history is live work.</p></div><div class="stamp" id="stamp">Loading…</div></header><div id="app"></div><p class="notice" id="notice"></p></main><script>
-  let fleet={workingNow:[],recentActivity:[],history:[]};const e=s=>{const d=document.createElement('div');d.textContent=String(s??'');return d.innerHTML};const work=w=>'<div class="session"><span>Worktree · '+e(w.worktree)+'</span><span>Branch · '+e(w.branch)+'</span></div>';const card=r=>'<article class="repo"><div class="repo-head"><span><span class="project">'+e(r.project)+'</span><span class="sub">'+r.worktrees.length+' worktree'+(r.worktrees.length===1?'':'s')+'</span></span><span class="dot '+e(r.state)+'">'+e(r.activity)+'</span></div><div class="details">'+r.worktrees.map(work).join('')+'<details><summary>Recent history ('+r.sessions.length+')</summary>'+(r.sessions.length?r.sessions.map(s=>'<div class="session"><span>'+e(s.provider)+' session</span><span>'+e(s.activity)+'</span></div>').join(''):'<div class="empty">No session history found.</div>')+'</details></div></article>';const section=(title,copy,rows,renderer=card)=>'<section><div class="section"><h2>'+title+' ('+rows.length+')</h2><p>'+copy+'</p></div>'+(rows.length?rows.map(renderer).join(''):'<p class="empty">None.</p>')+'</section>';const live=a=>'<article class="repo"><div class="repo-head"><span><span class="project">'+e(a.agent)+'</span><span class="sub">'+e(a.repo)+'</span></span><span class="dot recent">Running locally</span></div><div class="details">'+(a.matched?'<div class="session"><span>Worktree · '+e(a.worktree)+'</span><span>Branch · '+e(a.branch)+'</span></div>':'<div class="session"><span>Unassigned running agent</span><span>CWD · '+e(a.cwd)+'</span></div>')+'</div></article>';function render(){const projects=[...fleet.recentActivity,...fleet.history];document.querySelector('#stamp').textContent=fleet.workingNow.length+' running agents · '+projects.length+' repositories';document.querySelector('#notice').textContent=fleet.policy;document.querySelector('#app').innerHTML=section('Working now','Live local agent processes only.',fleet.workingNow,live)+section('Projects','Repositories and their worktrees.',projects)+section('Recent history','Observed session metadata, never a live-process claim.',fleet.recentActivity)+section('History','Older session records.',fleet.history)}async function refresh(){fleet=await fetch('/api/fleet').then(r=>r.json());render()}refresh();setInterval(refresh,5000);</script></body></html>`;
+  let fleet={workingNow:[],recentActivity:[],history:[]};const e=s=>{const d=document.createElement('div');d.textContent=String(s??'');return d.innerHTML};const work=w=>'<div class="session"><span>Worktree · '+e(w.worktree)+'</span><span>Branch · '+e(w.branch)+'</span></div>';const card=r=>'<article class="repo"><div class="repo-head"><span><span class="project">'+e(r.project)+'</span><span class="sub">'+r.worktrees.length+' worktree'+(r.worktrees.length===1?'':'s')+'</span></span><span class="dot '+e(r.state)+'">'+e(r.activity)+'</span></div><div class="details">'+r.worktrees.map(work).join('')+'<details><summary>Recent history ('+r.sessions.length+')</summary>'+(r.sessions.length?r.sessions.map(s=>'<div class="session"><span>'+e(s.provider)+' session</span><span>'+e(s.activity)+'</span></div>').join(''):'<div class="empty">No session history found.</div>')+'</details></div></article>';const section=(title,copy,rows,renderer=card)=>'<section><div class="section"><h2>'+title+' ('+rows.length+')</h2><p>'+copy+'</p></div>'+(rows.length?rows.map(renderer).join(''):'<p class="empty">None.</p>')+'</section>';const live=a=>'<article class="repo"><div class="repo-head"><span><span class="project">'+e(a.agent)+'</span><span class="sub">'+e(a.repo)+'</span></span><span class="dot recent">Running locally</span></div><div class="details">'+(a.matched?'<div class="session"><span>Worktree · '+e(a.worktree)+'</span><span>Branch · '+e(a.branch)+'</span></div>':'<div class="session"><span>Unassigned running agent</span></div>')+'</div></article>';function render(){const projects=[...fleet.recentActivity,...fleet.history];document.querySelector('#stamp').textContent=fleet.workingNow.length+' running agents · '+projects.length+' repositories';document.querySelector('#notice').textContent=fleet.policy;document.querySelector('#app').innerHTML=section('Working now','Live local agent processes only.',fleet.workingNow,live)+section('Projects','Repositories and their worktrees.',projects)+section('Recent history','Observed session metadata, never a live-process claim.',fleet.recentActivity)+section('History','Older session records.',fleet.history)}async function refresh(){fleet=await fetch('/api/fleet').then(r=>r.json());render()}refresh();setInterval(refresh,5000);</script></body></html>`;
 }
 
 export function startFleetWeb(options: { cwd: string; port?: number }): {
@@ -365,7 +359,7 @@ export function startFleetWeb(options: { cwd: string; port?: number }): {
         return Response.json(await buildFleetSnapshot(options.cwd));
       }
       if (pathname === "/" || pathname === "/index.html") {
-        return new Response(html(), {
+        return new Response(fleetHtml(), {
           headers: { "content-type": "text/html; charset=utf-8" },
         });
       }
