@@ -4,6 +4,7 @@
  * filesystem paths, shell endpoints, or agent-control actions are exposed.
  */
 
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename } from "node:path";
 import { buildScanContext } from "./catalog/context-builder.ts";
 import { findAssets } from "./catalog/find.ts";
@@ -23,6 +24,8 @@ export type LiveAgent = {
   agent: "Grok" | "Claude" | "Codex" | "Cursor";
   cwd: string;
   operation?: "Verifying a Spec Sync change" | "Working in project";
+  command?: string;
+  startedAt?: string;
 };
 
 export type WorkingAgent = Omit<LiveAgent, "cwd"> & {
@@ -41,6 +44,11 @@ export type FleetAgentActivity = {
   branch: string | null;
   evidence: "Local process" | "Session metadata";
   lastAction: string;
+  command: string | null;
+  startedAt: string | null;
+  latestMessage: string | null;
+  recentActivity: string[];
+  detailAvailability: "available" | "unavailable";
 };
 
 export type FleetWorktree = {
@@ -243,7 +251,26 @@ function readLiveAgents(): LiveAgent[] {
           });
         }
       }
-      return [{ agent, ...selectAgentWorkContext(rootCwd, descendants) }];
+      const context = selectAgentWorkContext(rootCwd, descendants);
+      const verifier = descendants.findLast(
+        (child) =>
+          child.cwd === context.cwd &&
+          /\bspecsync\b[\s\S]*\bchange\s+check\b/i.test(child.command),
+      );
+      const started = Bun.spawnSync({
+        cmd: ["ps", "-p", row.pid, "-o", "lstart="],
+      });
+      return [
+        {
+          agent,
+          ...context,
+          command: verifier?.command ?? row.command,
+          startedAt:
+            started.exitCode === 0
+              ? new TextDecoder().decode(started.stdout).trim() || undefined
+              : undefined,
+        },
+      ];
     })
     .slice(0, 20);
 }
@@ -295,6 +322,85 @@ function agentForHost(host: string): LiveAgent["agent"] | null {
 
 function sessionRank(freshness: FleetFreshness): number {
   return { live: 0, recent: 1, stale: 2, unknown: 3 }[freshness];
+}
+
+export function redactLocalDetail(value: string): string {
+  return value
+    .replace(
+      /\b(?:ghp|github_pat|sk|xox[baprs])-?[A-Za-z0-9_-]{16,}\b/g,
+      "[REDACTED]",
+    )
+    .replace(
+      /\b(password|passwd|secret|token|api[_-]?key|authorization)\s*[:=]\s*([^\s,}\]]+)/gi,
+      "$1=[REDACTED]",
+    )
+    .replace(
+      /-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g,
+      "[REDACTED CERTIFICATE]",
+    );
+}
+
+function sessionText(value: unknown): string[] {
+  if (typeof value === "string") {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(sessionText);
+  }
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>).flatMap(
+      ([key, child]) =>
+        /content|text|message|prompt|status|summary/i.test(key)
+          ? sessionText(child)
+          : [],
+    );
+  }
+  return [];
+}
+
+function sessionDetail(card: IndexCard): {
+  latestMessage: string | null;
+  recentActivity: string[];
+  detailAvailability: "available" | "unavailable";
+} {
+  if (
+    card.meta?.path_only === true ||
+    !existsSync(card.path) ||
+    !statSync(card.path).isFile()
+  ) {
+    return {
+      latestMessage: null,
+      recentActivity: [],
+      detailAvailability: "unavailable",
+    };
+  }
+  try {
+    const raw = readFileSync(card.path, "utf8").slice(-48_000);
+    const messages = raw
+      .split("\n")
+      .flatMap((line) => {
+        try {
+          return sessionText(JSON.parse(line));
+        } catch {
+          return line.trim() ? [line] : [];
+        }
+      })
+      .map((message) => redactLocalDetail(message.replace(/\s+/g, " ").trim()))
+      .filter(Boolean)
+      .map((message) => message.slice(0, 500))
+      .slice(-8);
+    return {
+      latestMessage: messages.at(-1) ?? null,
+      recentActivity: messages,
+      detailAvailability: messages.length > 0 ? "available" : "unavailable",
+    };
+  } catch {
+    return {
+      latestMessage: null,
+      recentActivity: [],
+      detailAvailability: "unavailable",
+    };
+  }
 }
 
 export function fleetStateForSessions(sessions: FleetSession[]): FleetState {
@@ -432,6 +538,7 @@ export async function buildFleetSnapshot(
       : undefined;
     const repository = key ? repositories.get(key) : undefined;
     const view = sessionView(session, now);
+    const detail = sessionDetail(session);
     const candidate: FleetAgentActivity = {
       agent,
       status:
@@ -447,6 +554,11 @@ export async function buildFleetSnapshot(
       branch: worktree?.branch ?? null,
       evidence: "Session metadata",
       lastAction: view.activity,
+      command: null,
+      startedAt: null,
+      latestMessage: detail.latestMessage,
+      recentActivity: detail.recentActivity,
+      detailAvailability: detail.detailAvailability,
     };
     const existing = agentsByName.get(agent);
     if (
@@ -480,6 +592,11 @@ export async function buildFleetSnapshot(
       branch: details?.branch ?? null,
       evidence: "Local process",
       lastAction: "Now",
+      command: agent.command ? redactLocalDetail(agent.command) : null,
+      startedAt: agent.startedAt ?? null,
+      latestMessage: null,
+      recentActivity: [],
+      detailAvailability: agent.command ? "available" : "unavailable",
     });
     return working;
   });
@@ -539,9 +656,19 @@ export async function buildFleetSnapshot(
 }
 
 export function fleetHtml(): string {
+  const supervisor = fleetSupervisorHtml();
+  if (supervisor.length > 0) {
+    return supervisor;
+  }
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Let Fleet</title><style>
   :root{--ink:#eaf4f3;--muted:#9aabb1;--ground:#10151a;--panel:#182128;--line:#31404a;--aqua:#59d7cb;--lime:#afe84c}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#17343a 0,transparent 32rem),var(--ground);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,sans-serif}main{max-width:960px;margin:auto;padding:32px 24px}header{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid var(--line);padding-bottom:22px}.eyebrow{font:600 11px ui-monospace,monospace;letter-spacing:.13em;color:var(--aqua);text-transform:uppercase}h1{font-size:36px;letter-spacing:-.04em;margin:4px 0}h2{margin:4px 0;font-size:17px}p{color:var(--muted);max-width:660px;margin:0}.stamp{color:var(--muted);font:12px ui-monospace,monospace;text-align:right}.views{display:flex;gap:8px;margin:24px 0 12px}.view{background:transparent;border:1px solid var(--line);border-radius:999px;color:var(--muted);cursor:pointer;padding:8px 12px;font:600 12px ui-monospace,monospace}.view[aria-pressed="true"]{background:var(--aqua);border-color:var(--aqua);color:#102124}.view:focus-visible,.repo-head:focus-visible{outline:3px solid var(--aqua);outline-offset:2px}.section{margin:14px 0 10px;display:flex;align-items:baseline;gap:10px}.section p{font-size:12px}.agent-card,.repo{background:rgba(24,33,40,.9);border:1px solid var(--line);border-radius:10px;margin:10px 0}.agent-card{padding:17px;border-left:3px solid var(--line)}.agent-card.working{border-left-color:var(--lime)}.agent-line{color:var(--ink);font-size:18px;font-weight:650;letter-spacing:-.02em}.agent-meta,.details{margin-top:10px;border-top:1px solid #27353d}.agent-meta,.session{display:flex;justify-content:space-between;gap:14px;padding:9px 0;font:12px ui-monospace,monospace}.agent-meta span:last-child,.session span:last-child{color:var(--muted)}.repo{overflow:hidden}.repo-head{list-style:none;padding:14px 15px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}.repo-head::-webkit-details-marker{display:none}.repo-head:hover{background:#1d3035}.project{font-weight:700}.sub{display:block;color:var(--muted);font:12px ui-monospace,monospace;margin-top:2px}.signal{color:var(--aqua);font:12px ui-monospace,monospace}.details{padding:0 15px}.details summary{padding:11px 0;color:var(--muted);cursor:pointer;font-size:12px}.session{border-top:1px solid #27353d}.empty{color:var(--muted);font-size:13px;padding:13px 0}.notice{margin-top:22px;color:var(--muted);font-size:12px}@media(max-width:740px){main{padding:22px 12px}header{display:block}.stamp{text-align:left;margin-top:12px}h1{font-size:30px}.agent-meta,.session{display:block}.agent-meta span,.session span{display:block;margin:3px 0}}@media(prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important;transition:none!important}}</style></head><body><main><header><div><div class="eyebrow">Let / local observatory</div><h1>Fleet activity</h1><p>Who is working, where they are working, and what changed most recently.</p></div><div class="stamp" id="stamp">Loading…</div></header><nav class="views" aria-label="Fleet view"><button class="view" type="button" data-view="agents" aria-pressed="true">By agent</button><button class="view" type="button" data-view="projects" aria-pressed="false">By project</button></nav><div id="app"></div><p class="notice" id="notice"></p></main><script>
   let fleet={agents:[],recentActivity:[],history:[]},view='agents';const e=s=>{const d=document.createElement('div');d.textContent=String(s??'');return d.innerHTML};const human=s=>String(s??'').replace(/[-_]+/g,' ').replace(/\\b\\w/g,c=>c.toUpperCase());const plural=(n,word)=>n+' '+word+(n===1?'':'s');const work=w=>'<div class="session"><span>Worktree · '+e(w.worktree)+'</span><span>Branch · '+e(w.branch)+'</span></div>';const project=r=>'<details class="repo"><summary class="repo-head"><span><span class="project">'+e(human(r.project))+'</span><span class="sub">'+plural(r.worktrees.length,'worktree')+'</span></span>'+ (r.state==='recent'?'<span class="signal">Recent activity</span>':'')+'</summary><div class="details">'+r.worktrees.map(work).join('')+'<details><summary>Recent history ('+r.sessions.length+')</summary>'+(r.sessions.length?r.sessions.map(s=>'<div class="session"><span>'+e(s.provider)+' session</span><span>'+e(s.activity)+'</span></div>').join(''):'<div class="empty">No recent history.</div>')+'</details></div></details>';const agent=a=>{const project=a.project?human(a.project):'Unassigned running agent';const worktree=a.worktree&&human(a.worktree)!==project?'<span>Worktree · '+e(a.worktree)+'</span>':'';const branch=a.branch?'<span>Branch · '+e(a.branch)+'</span>':'';const status=a.status==='working'?'Working now':a.status==='recent'?'Recent session':'Earlier session';return '<article class="agent-card '+e(a.status)+'"><p class="agent-line">'+e(a.agent)+' — '+e(a.operation)+'</p><div class="agent-meta"><span>Project · '+e(project)+'</span><span>'+e(status)+'</span></div><div class="agent-meta">'+worktree+branch+'<span>Last meaningful action · '+e(a.lastAction)+'</span></div></article>'};const section=(title,copy,rows,render)=>'<section><div class="section"><h2>'+title+' ('+rows.length+')</h2><p>'+copy+'</p></div>'+(rows.length?rows.map(render).join(''):'<p class="empty">None.</p>')+'</section>';function render(){const projects=[...fleet.recentActivity,...fleet.history];document.querySelector('#stamp').textContent=plural(fleet.agents.filter(a=>a.status==='working').length,'agent')+' working · '+plural(projects.length,'project');document.querySelector('#notice').textContent=fleet.policy;document.querySelector('#app').innerHTML=view==='agents'?section('By agent','Process-backed work is marked Working now. Session records stay clearly separate.',fleet.agents,agent):section('By project','Open a project to see worktrees and recent history.',projects,project);document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view=button.dataset.view;document.querySelectorAll('[data-view]').forEach(item=>item.setAttribute('aria-pressed',String(item.dataset.view===view)));render()}))}async function refresh(){fleet=await fetch('/api/fleet').then(r=>r.json());render()}refresh();setInterval(refresh,5000);</script></body></html>`;
+}
+
+function fleetSupervisorHtml(): string {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Let Fleet</title><style>
+  :root{--ink:#eef7f6;--muted:#a8b7bc;--ground:#10151a;--panel:#182128;--line:#31404a;--aqua:#59d7cb;--lime:#afe84c}*{box-sizing:border-box}body{margin:0;background:var(--ground);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,sans-serif}main{max-width:960px;margin:auto;padding:28px 20px}h1{margin:3px 0;font-size:34px}.eyebrow,.meta{font:12px ui-monospace,monospace;color:var(--muted)}.eyebrow{letter-spacing:.12em;color:var(--aqua);text-transform:uppercase}.local{margin:18px 0;padding:11px 13px;border-left:3px solid var(--aqua);background:#153035;color:var(--ink)}.views{display:flex;gap:8px;margin:18px 0}.view{border:1px solid var(--line);border-radius:999px;padding:8px 12px;background:transparent;color:var(--muted);font:600 12px ui-monospace,monospace}.view[aria-pressed="true"]{background:var(--aqua);color:#112426;border-color:var(--aqua)}.view:focus-visible,summary:focus-visible{outline:3px solid var(--aqua);outline-offset:2px}.card{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:10px 0;padding:15px}.card.working{border-left:3px solid var(--lime)}.line{font-size:18px;font-weight:680}.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #27353d}.row span:last-child{color:var(--muted)}details summary{cursor:pointer;color:var(--muted);padding:10px 0}.output{white-space:pre-wrap;overflow-wrap:anywhere;color:#cdd9d9;background:#111a20;padding:10px;border-radius:6px;font:12px/1.4 ui-monospace,monospace}.notice{color:var(--muted);font-size:12px;margin-top:20px}@media(max-width:740px){main{padding:20px 12px}.row{display:block}.row span{display:block;margin:3px 0}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}</style></head><body><main><div class="eyebrow">Let / local supervisor</div><h1>Fleet activity</h1><div class="meta" id="stamp">Loading…</div><aside class="local"><strong>Local-only supervisor view.</strong> Details are served only from this machine. Known token, credential, and environment-value patterns are redacted.</aside><nav class="views" aria-label="Fleet view"><button class="view" data-view="agents" aria-pressed="true">By agent</button><button class="view" data-view="projects" aria-pressed="false">By project</button></nav><div id="app"></div><p class="notice" id="notice"></p></main><script>
+  let fleet={agents:[],recentActivity:[],history:[]},view='agents';const e=s=>{const d=document.createElement('div');d.textContent=String(s??'Unavailable');return d.innerHTML};const human=s=>String(s||'Unassigned running agent').replace(/[-_]+/g,' ').replace(/\\b\\w/g,c=>c.toUpperCase());const plural=(n,w)=>n+' '+w+(n===1?'':'s');const agent=a=>{const project=human(a.project),same=a.worktree&&human(a.worktree)===project,details='<details><summary>Local supervision details</summary><div class="row"><span>Current command</span><span>'+e(a.command||'Unavailable')+'</span></div><div class="row"><span>Started</span><span>'+e(a.startedAt||'Unavailable')+'</span></div><div class="row"><span>Latest prompt or status</span><span>'+e(a.latestMessage||'Unavailable')+'</span></div><div class="row"><span>Detail source</span><span>'+e(a.evidence)+' · '+e(a.detailAvailability)+'</span></div>'+(a.recentActivity.length?'<div class="output">'+a.recentActivity.map(e).join('\\n\\n')+'</div>':'<p class="meta">Recent activity unavailable.</p>')+'</details>';return '<article class="card '+e(a.status)+'"><div class="line">'+e(a.agent)+' — '+e(a.operation)+'</div><div class="row"><span>Project · '+e(project)+'</span><span>'+e(a.status==='working'?'Running locally':a.status==='recent'?'Recent session activity':'Stale session activity')+'</span></div><div class="row">'+(same?'':a.worktree?'<span>Worktree · '+e(a.worktree)+'</span>':'')+(a.branch?'<span>Branch · '+e(a.branch)+'</span>':'')+'<span>Last update · '+e(a.lastAction)+'</span></div>'+details+'</article>'};const project=r=>'<details class="card"><summary><strong>'+e(human(r.project))+'</strong> · '+e(plural(r.worktrees.length,'worktree'))+'</summary>'+r.worktrees.map(w=>'<div class="row"><span>'+e(w.worktree)+'</span><span>'+e(w.branch)+'</span></div>').join('')+'</details>';function render(){const projects=[...fleet.recentActivity,...fleet.history];document.querySelector('#stamp').textContent=plural(fleet.agents.filter(a=>a.status==='working').length,'agent')+' working · '+plural(projects.length,'project');document.querySelector('#notice').textContent=fleet.policy;document.querySelector('#app').innerHTML=view==='agents'?fleet.agents.map(agent).join('')||'<p class="meta">No local agent or session metadata is available.</p>':projects.map(project).join('')||'<p class="meta">No projects are available.</p>';document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view=button.dataset.view;document.querySelectorAll('[data-view]').forEach(item=>item.setAttribute('aria-pressed',String(item.dataset.view===view)));render()}))}async function refresh(){fleet=await fetch('/api/fleet').then(r=>r.json());render()}refresh();setInterval(refresh,5000);</script></body></html>`;
 }
 
 function _previousFleetHtml(): string {

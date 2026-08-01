@@ -34,6 +34,7 @@ workflow engine or a remote-control surface.
 | `WorkingAgent` | Sanitized live agent record matched to a repo/worktree or marked unassigned. |
 | `FleetAgentActivity` | Safe agent-focused status derived from a local process or session metadata. |
 | `selectAgentWorkContext` | Prefer a bounded child verifier worktree over its agent parent process context. |
+| `redactLocalDetail` | Redact known token, credential, and environment-value patterns before local display. |
 | `parseLocalAgentProcessLines` | Parse only whitelisted agent CLI processes and resolve their cwd internally. |
 | `FleetSnapshot` | Sanitized rows, bounded session metadata, refresh interval, and policy. |
 
@@ -41,8 +42,7 @@ workflow engine or a remote-control surface.
 
 1. `let web` binds only to `127.0.0.1` and defaults to port `8731`.
 2. Fleet data is derived from Let catalog APIs, not parsed terminal output.
-3. Responses never include filesystem paths, session bodies, terminal output,
-   secrets, browser shell endpoints, or agent-control actions.
+3. Responses never include raw secrets, browser shell endpoints, or agent-control actions. The localhost supervisor may include redacted session bodies, command output, and filesystem context for active-agent supervision.
 4. Repository cards group worktrees first; sessions remain secondary evidence.
 5. Working now comes only from a local process probe with exact agent CLI executable allowlist and cwd resolution. Session timestamps never prove a process is running.
 6. Unmapped live processes are surfaced as Unassigned running agent and agent type only; their current working directories never leave the process probe.
@@ -51,7 +51,8 @@ workflow engine or a remote-control surface.
 9. The normal CLI exits after ordinary commands, but remains alive while `web`
    owns the local server.
 10. The agent view distinguishes a process-backed `Working now` status from recent or historical session metadata; no session record is represented as a running process.
-11. The process probe may inspect a bounded descendant tree internally to classify an allowlisted operation label, but it never exposes command text, arguments, process IDs, or working-directory paths.
+11. The process probe may inspect a bounded descendant tree internally to classify an allowlisted operation label; the localhost supervisor may show its redacted command and resolved project context, but never exposes process IDs.
+12. The localhost supervisor may expose redacted command, prompt/status, and recent activity detail only after applying `redactLocalDetail`; unavailable detail is labeled instead of inferred.
 
 ## Behavioral Examples
 

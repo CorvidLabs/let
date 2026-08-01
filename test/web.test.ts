@@ -5,6 +5,7 @@ import {
   fleetHtml,
   fleetStateForSessions,
   parseLocalAgentProcessLines,
+  redactLocalDetail,
   selectAgentWorkContext,
 } from "../src/web.ts";
 
@@ -13,7 +14,6 @@ describe("web fleet snapshot", () => {
     const snapshot = await buildFleetSnapshot(process.cwd(), Date.now());
     expect(snapshot.source).toBe("let");
     expect(snapshot.liveProcessDetection).toBe("local-process");
-    expect(JSON.stringify(snapshot.workingNow)).not.toContain("/Users/");
     expect(JSON.stringify(snapshot.workingNow)).not.toContain('"cwd"');
     const repositories = [...snapshot.recentActivity, ...snapshot.history];
     expect(repositories.length).toBeLessThanOrEqual(48);
@@ -27,18 +27,26 @@ describe("web fleet snapshot", () => {
   });
 });
 
-test("Fleet API and HTML never expose a process working directory", async () => {
+test("Fleet API and HTML expose local supervision details without internal CWD keys", async () => {
   const api = JSON.stringify(
     await buildFleetSnapshot(process.cwd(), Date.now()),
   );
   const page = fleetHtml();
   for (const response of [api, page]) {
     expect(response).not.toContain('"cwd"');
-    expect(response).not.toContain("/Users/");
-    expect(response).not.toContain("…/");
-    expect(response).not.toContain('"argv"');
     expect(response).not.toContain('"pid"');
   }
+  expect(page).toContain("Local-only supervisor view");
+  expect(page).toContain("Latest prompt or status");
+});
+
+test("local supervisor details redact known secret-shaped values", () => {
+  const detail = redactLocalDetail(
+    "token=ghp_abcdefghijklmnopqrstuvwxyz123456 password=private-value",
+  );
+  expect(detail).toContain("token=[REDACTED]");
+  expect(detail).toContain("password=[REDACTED]");
+  expect(detail).not.toContain("private-value");
 });
 
 test("Fleet page starts by agent and keeps project worktrees collapsed", () => {
@@ -47,8 +55,8 @@ test("Fleet page starts by agent and keeps project worktrees collapsed", () => {
   expect(page).toContain("By agent");
   expect(page).toContain("By project");
   expect(page).toContain("Unassigned running agent");
-  expect(page).toContain('<details class="repo">');
-  expect(page).not.toContain('<details class="repo" open');
+  expect(page).toContain('<details class="card">');
+  expect(page).not.toContain('<details class="card" open');
   expect(page).not.toContain("No session heartbeat");
   expect(page).toContain(
     "agent')+' working · '+plural(projects.length,'project",
