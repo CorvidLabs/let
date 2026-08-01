@@ -748,7 +748,7 @@ export function fleetLiveChangeAnnouncement(
 }
 
 export function fleetHtml(): string {
-  const supervisor = fleetSupervisorHtmlV3();
+  const supervisor = fleetSupervisorHtmlV4();
   if (supervisor.length > 0) {
     return supervisor;
   }
@@ -768,6 +768,13 @@ function fleetSupervisorHtmlV3(): string {
   return fleetSupervisorHtmlV2().replace(
     `document.querySelector('details[data-fleet-key="'+ui.focus.key+'"]').querySelector('summary')`,
     `document.querySelector('details[data-fleet-key="'+ui.focus.key+'"]')?.querySelector('summary')`,
+  );
+}
+
+function fleetSupervisorHtmlV4(): string {
+  return fleetSupervisorHtmlV3().replace(
+    "restoreUiState=()=>{",
+    "restoreUiState=()=>{document.querySelectorAll('[data-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.view===view)));",
   );
 }
 

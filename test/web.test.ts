@@ -125,6 +125,7 @@ test("Fleet page preserves refresh state with stable agent and project panel key
   expect(page).toContain("details[data-fleet-key][open]");
   expect(page).toContain("captureUiState");
   expect(page).toContain("restoreUiState");
+  expect(page).toContain("button.dataset.view===view");
   expect(page).toContain("setInterval(refresh,20000)");
   expect(page).toContain('role="status" aria-live="polite"');
   expect(page).not.toContain("No session heartbeat");
