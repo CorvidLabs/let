@@ -11,6 +11,48 @@ import { geminiHome, projectGeminiDir } from "../paths.ts";
 import { instructionId, pathCardId } from "./ids.ts";
 import type { IndexCard } from "./types.ts";
 
+export function antigravitySessionCards(
+  brainRoot: string,
+  limit: number,
+): IndexCard[] {
+  if (!isDirectory(brainRoot)) {
+    return [];
+  }
+  try {
+    return readdirSync(brainRoot)
+      .slice(0, limit)
+      .flatMap((sessionId) => {
+        const transcript = join(
+          brainRoot,
+          sessionId,
+          ".system_generated",
+          "logs",
+          "transcript_full.jsonl",
+        );
+        if (!pathExists(transcript)) {
+          return [];
+        }
+        return [
+          {
+            id: pathCardId("sessions", transcript),
+            kind: "sessions" as const,
+            host: "gemini" as const,
+            name: `Antigravity session ${sessionId.slice(0, 8)}`,
+            path: transcript,
+            scope: "user" as const,
+            mtime_ms: mtimeMs(transcript),
+            meta: {
+              source: "antigravity-cli",
+              detail_available: true,
+            },
+          },
+        ];
+      });
+  } catch {
+    return [];
+  }
+}
+
 function readProjectsMap(): Map<string, string> {
   // path -> short name
   const map = new Map<string, string>();
@@ -198,6 +240,12 @@ export function findGeminiSessions(ctx: ScanContext): IndexCard[] {
         },
       });
     }
+    cards.push(
+      ...antigravitySessionCards(
+        join(home, "antigravity-cli", "brain"),
+        ctx.policy.maxEntriesPerRoot,
+      ),
+    );
   }
 
   return cards;

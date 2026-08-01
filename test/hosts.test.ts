@@ -1,11 +1,31 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { buildScanContext } from "../src/catalog/context-builder.ts";
 import { findAssets } from "../src/catalog/find.ts";
+import { antigravitySessionCards } from "../src/catalog/gemini.ts";
 import { geminiHome, homeDir, kimiHome } from "../src/paths.ts";
 
 describe("gemini adapter", () => {
+  test("Antigravity transcript metadata is discoverable without guessing a project", () => {
+    const root = mkdtempSync(join(tmpdir(), "let-antigravity-"));
+    const transcript = join(
+      root,
+      "session-12345678",
+      ".system_generated",
+      "logs",
+      "transcript_full.jsonl",
+    );
+    mkdirSync(dirname(transcript), { recursive: true });
+    writeFileSync(transcript, '{"status":"DONE"}\n');
+    const cards = antigravitySessionCards(root, 10);
+    expect(cards).toHaveLength(1);
+    expect(cards[0]?.name).toBe("Antigravity session session-");
+    expect(cards[0]?.meta?.detail_available).toBe(true);
+    expect(cards[0]?.repo_root).toBeUndefined();
+  });
+
   test("doctor-level roots exist on this machine or skip gracefully", async () => {
     const ctx = buildScanContext({
       cwd: process.cwd(),

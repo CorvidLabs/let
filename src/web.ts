@@ -21,9 +21,12 @@ export type FleetSession = {
 };
 
 export type LiveAgent = {
-  agent: "Grok" | "Claude" | "Codex" | "Cursor";
+  agent: "Grok" | "Claude" | "Codex" | "Cursor" | "Gemini / Antigravity";
   cwd: string;
-  operation?: "Verifying a Spec Sync change" | "Working in project";
+  operation?:
+    | "Verifying a Spec Sync change"
+    | "Working in project"
+    | "Antigravity session details unavailable";
   command?: string;
   startedAt?: string;
 };
@@ -142,6 +145,9 @@ export function parseLocalAgentProcessLines(
     claude: "Claude",
     codex: "Codex",
     cursor: "Cursor",
+    gemini: "Gemini / Antigravity",
+    antigravity: "Gemini / Antigravity",
+    "antigravity-cli": "Gemini / Antigravity",
   };
   return output
     .split("\n")
@@ -232,8 +238,19 @@ function readLiveAgents(): LiveAgent[] {
       .flatMap((row) => {
         const agent = providers[basename(row.executable).toLowerCase()];
         const rootCwd = agent ? cwdForPid(row.pid) : null;
-        if (!agent || !rootCwd) {
+        if (!agent) {
           return [];
+        }
+        if (!rootCwd) {
+          return agent === "Gemini / Antigravity"
+            ? [
+                {
+                  agent,
+                  cwd: "",
+                  operation: "Antigravity session details unavailable" as const,
+                },
+              ]
+            : [];
         }
         if (
           (agent === "Codex" || agent === "Cursor") &&
@@ -323,6 +340,9 @@ function agentForHost(host: string): LiveAgent["agent"] | null {
   }
   if (normalized.includes("cursor")) {
     return "Cursor";
+  }
+  if (normalized.includes("gemini") || normalized.includes("antigravity")) {
+    return "Gemini / Antigravity";
   }
   return null;
 }
@@ -613,20 +633,27 @@ export async function buildFleetSnapshot(
       matched: details !== undefined,
       operation: agent.operation,
     };
+    const prior = agentsByName.get(agent.agent);
     agentsByName.set(agent.agent, {
       agent: agent.agent,
       status: "working",
-      operation: agent.operation ?? "Working in project",
-      project: details?.repo ?? null,
-      worktree: details?.worktree ?? null,
-      branch: details?.branch ?? null,
+      operation:
+        agent.agent === "Gemini / Antigravity" && prior
+          ? "Antigravity session activity"
+          : (agent.operation ?? "Working in project"),
+      project: details?.repo ?? prior?.project ?? null,
+      worktree: details?.worktree ?? prior?.worktree ?? null,
+      branch: details?.branch ?? prior?.branch ?? null,
       evidence: "Local process",
       lastAction: "Now",
       command: agent.command ? redactLocalDetail(agent.command) : null,
       startedAt: agent.startedAt ?? null,
-      latestMessage: null,
-      recentActivity: [],
-      detailAvailability: agent.command ? "available" : "unavailable",
+      latestMessage: prior?.latestMessage ?? null,
+      recentActivity: prior?.recentActivity ?? [],
+      detailAvailability:
+        agent.command || prior?.detailAvailability === "available"
+          ? "available"
+          : "unavailable",
     });
     return working;
   });

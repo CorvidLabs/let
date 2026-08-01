@@ -94,6 +94,7 @@ Context packs never include session paths or bodies.
 | `phraseHits` | Trigger phrase match (all words required). |
 | `findGeminiInstructions` | GEMINI.md + ~/.gemini global. |
 | `findGeminiSessions` | Path-only history/projects. |
+| `antigravitySessionCards` | Discover local Antigravity CLI transcript metadata without inventing a project binding. |
 | `findGeminiMemory` | Antigravity brain/knowledge path-only. |
 | `findKimiSessions` | Path-only workspaces/sessions via workspaces.json. |
 | `findKimiMemory` | Path-only user-history. |
