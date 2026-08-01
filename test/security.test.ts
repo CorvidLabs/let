@@ -98,7 +98,7 @@ describe("security: path_only and secret refusal", () => {
     const root = tempDir("big");
     const big = join(root, "BIG.md");
     // Just over open preview; use show with small file still ok
-    writeFileSync(big, "A".repeat(10_000) + "TAIL");
+    writeFileSync(big, `${"A".repeat(10_000)}TAIL`);
     const ctx = {
       ...buildScanContext({ cwd: root }),
       repoRoot: root,

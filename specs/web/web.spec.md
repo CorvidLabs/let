@@ -32,6 +32,8 @@ workflow engine or a remote-control surface.
 | `FleetRepository` | Repository-first collection of worktrees and secondary session evidence. |
 | `LiveAgent` | Whitelisted local CLI agent with an internal current working directory. |
 | `WorkingAgent` | Sanitized live agent record matched to a repo/worktree or marked unassigned. |
+| `FleetAgentActivity` | Safe agent-focused status derived from a local process or session metadata. |
+| `selectAgentWorkContext` | Prefer a bounded child verifier worktree over its agent parent process context. |
 | `parseLocalAgentProcessLines` | Parse only whitelisted agent CLI processes and resolve their cwd internally. |
 | `FleetSnapshot` | Sanitized rows, bounded session metadata, refresh interval, and policy. |
 
@@ -48,6 +50,8 @@ workflow engine or a remote-control surface.
 8. Session-only records are bounded and include metadata only.
 9. The normal CLI exits after ordinary commands, but remains alive while `web`
    owns the local server.
+10. The agent view distinguishes a process-backed `Working now` status from recent or historical session metadata; no session record is represented as a running process.
+11. The process probe may inspect a bounded descendant tree internally to classify an allowlisted operation label, but it never exposes command text, arguments, process IDs, or working-directory paths.
 
 ## Behavioral Examples
 

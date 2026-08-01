@@ -2,9 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { runLet } from "../src/run.ts";
 import {
   buildFleetSnapshot,
-  fleetStateForSessions,
   fleetHtml,
+  fleetStateForSessions,
   parseLocalAgentProcessLines,
+  selectAgentWorkContext,
 } from "../src/web.ts";
 
 describe("web fleet snapshot", () => {
@@ -27,13 +28,46 @@ describe("web fleet snapshot", () => {
 });
 
 test("Fleet API and HTML never expose a process working directory", async () => {
-  const api = JSON.stringify(await buildFleetSnapshot(process.cwd(), Date.now()));
+  const api = JSON.stringify(
+    await buildFleetSnapshot(process.cwd(), Date.now()),
+  );
   const page = fleetHtml();
   for (const response of [api, page]) {
     expect(response).not.toContain('"cwd"');
     expect(response).not.toContain("/Users/");
     expect(response).not.toContain("…/");
+    expect(response).not.toContain('"argv"');
+    expect(response).not.toContain('"pid"');
   }
+});
+
+test("Fleet page starts by agent and keeps project worktrees collapsed", () => {
+  const page = fleetHtml();
+  expect(page).toContain('data-view="agents"');
+  expect(page).toContain("By agent");
+  expect(page).toContain("By project");
+  expect(page).toContain("Unassigned running agent");
+  expect(page).toContain('<details class="repo">');
+  expect(page).not.toContain('<details class="repo" open');
+  expect(page).not.toContain("No session heartbeat");
+  expect(page).toContain(
+    "agent')+' working · '+plural(projects.length,'project",
+  );
+});
+
+test("a child verifier context overrides its agent parent worktree", () => {
+  expect(
+    selectAgentWorkContext("/work/spec-sync", [
+      { command: "grok --continue", cwd: "/work/spec-sync" },
+      {
+        command: "specsync change check CHG-0068",
+        cwd: "/work/spec-sync/.claude/worktrees/fix-sandbox-14-16",
+      },
+    ]),
+  ).toEqual({
+    cwd: "/work/spec-sync/.claude/worktrees/fix-sandbox-14-16",
+    operation: "Verifying a Spec Sync change",
+  });
 });
 
 test("stale session history never appears as recent activity", () => {
