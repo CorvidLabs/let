@@ -94,6 +94,7 @@ export {
   grokHome,
   homeDir,
   kimiHome,
+  openaiHome,
   projectClaudeDir,
   projectGeminiDir,
   projectLetDir,

@@ -26,6 +26,11 @@ export function cursorHome(): string {
   return join(homeDir(), ".cursor");
 }
 
+/** OpenAI agent/CLI home. */
+export function openaiHome(): string {
+  return join(homeDir(), ".openai");
+}
+
 /** Google Gemini CLI / Antigravity home. */
 export function geminiHome(): string {
   return join(homeDir(), ".gemini");

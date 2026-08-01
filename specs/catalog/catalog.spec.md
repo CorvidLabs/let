@@ -1,6 +1,6 @@
 ---
 module: catalog
-version: 1
+version: 4
 status: active
 files:
   - src/catalog/types.ts
@@ -49,7 +49,7 @@ Context packs never include session paths or bodies.
 
 | Export | Description |
 |--------|-------------|
-| `HostId` | Host attribution id (claude, grok, codex, cursor, gemini, kimi, git, project, corvid, let, agent3md, unknown). |
+| `HostId` | Host attribution id (claude, grok, codex, cursor, openai, gemini, kimi, git, project, corvid, let, agent3md, unknown). |
 | `FindKind` | Closed catalog kind union for find/show. |
 | `FIND_KINDS` | Runtime list of all FindKind values. |
 | `FindScope` | project \| user \| all. |
@@ -115,7 +115,7 @@ Context packs never include session paths or bodies.
 | `pathCardId` | Document caller-visible behavior and constraints. |
 | `inRepoWorktreeBases` | Document caller-visible behavior and constraints. |
 | `externalWorktreeRoots` | Document caller-visible behavior and constraints. |
-| `skillRoots` | Document caller-visible behavior and constraints. |
+| `skillRoots` | Fixed project and user skill catalog roots, including `.openai/skills`; user roots obey `include_user_skills`. |
 | `isDeniedBasename` | Document caller-visible behavior and constraints. |
 | `MAX_BODY_BYTES` | Document caller-visible behavior and constraints. |
 | `MAX_OPEN_PREVIEW_BYTES` | Document caller-visible behavior and constraints. |
@@ -155,7 +155,7 @@ Context packs never include session paths or bodies.
 
 | Export | Description |
 |--------|-------------|
-| `HostId` | claude, grok, codex, cursor, gemini, kimi, git, project, corvid, let, agent3md, unknown. |
+| `HostId` | claude, grok, codex, cursor, openai, gemini, kimi, git, project, corvid, let, agent3md, unknown. |
 | `FindKind` | Closed catalog kinds (worktrees, skills, instructions, sessions, ...). |
 | `FindScope` | project \| user \| all. |
 | `CardScope` | project \| user \| global on individual cards. |
@@ -255,6 +255,7 @@ Then body is undefined and payload.path_only is true
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 4 | 2026-08-01 | Add OpenAI skill-root discovery and attribution. |
 | 1 | 2026-07-30 | Federated find/where/context (PR1b). |
 | 2 | 2026-07-31 | Full host federation: memory/plugins/mcp/tasks/commands; agent.3md first-class. |
 | 3 | 2026-07-31 | Security: open path_only refusal; project session scope; partial body reads; underRepo bounds. |

@@ -10,6 +10,7 @@ import {
   cursorHome,
   grokHome,
   homeDir,
+  openaiHome,
 } from "../paths.ts";
 
 export type ScanPolicy = {
@@ -88,6 +89,7 @@ export function skillRoots(repoRoot: string | null): {
       join(repoRoot, ".grok", "skills"),
       join(repoRoot, ".cursor", "skills"),
       join(repoRoot, ".cursor", "skills-cursor"),
+      join(repoRoot, ".openai", "skills"),
       join(repoRoot, ".let", "skills"),
       join(repoRoot, "skills"),
       join(repoRoot, ".agents", "skills"),
@@ -99,6 +101,7 @@ export function skillRoots(repoRoot: string | null): {
     join(grokHome(), "skills"),
     join(cursorHome(), "skills-cursor"),
     join(cursorHome(), "skills"),
+    join(openaiHome(), "skills"),
     join(codexHome(), "skills"),
     join(homeDir(), ".let", "skills"),
   ];

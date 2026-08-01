@@ -1,6 +1,6 @@
 ---
 module: paths
-version: 1
+version: 2
 status: active
 files:
   - src/paths.ts
@@ -12,8 +12,8 @@ depends_on: []
 
 ## Purpose
 
-Host and project path helpers for Claude, Grok, Codex, Cursor, and let directories,
-plus Claude project path encoding.
+Host and project path helpers for Claude, Grok, Codex, Cursor, Gemini, Kimi, OpenAI, and let
+directories, plus Claude project path encoding.
 
 ## Public API
 
@@ -26,6 +26,7 @@ plus Claude project path encoding.
 | `grokHome` | `~/.grok`. |
 | `codexHome` | `~/.codex`. |
 | `cursorHome` | `~/.cursor`. |
+| `openaiHome` | `~/.openai`. |
 | `geminiHome` | `~/.gemini`. |
 | `kimiHome` | `~/.kimi-code`. |
 | `projectClaudeDir` | `<repo>/.claude`. |
@@ -63,4 +64,5 @@ Then result is -Users-leif-Development--CorvidLabs-quill
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2 | 2026-08-01 | Add the OpenAI home helper contract. |
 | 1 | 2026-07-30 | Initial path helpers. |

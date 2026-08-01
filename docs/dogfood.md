@@ -29,7 +29,7 @@ let show skill <id> --json    # load body / tool template
 ## Multi-host on this machine
 
 ```bash
-let doctor --json                          # roots for claude/codex/cursor/grok/gemini/kimi
+let doctor --json                          # roots for claude/codex/cursor/grok/openai/gemini/kimi
 let find sessions --host kimi --scope user --json
 let find sessions --host gemini --scope user --json
 let find agents --json                     # agent3md + claude/codex + gemini

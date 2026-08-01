@@ -12,6 +12,7 @@ import {
   pathExists,
   readTextFile,
 } from "../fs-scan.ts";
+import { openaiHome } from "../paths.ts";
 import { skillId } from "./ids.ts";
 import { skillRoots } from "./scan-policy.ts";
 import type { HostId, IndexCard } from "./types.ts";
@@ -25,6 +26,12 @@ function hostForSkillRoot(root: string, ctx: ScanContext): HostId {
   }
   if (root.includes("/.cursor/") || root.includes("skills-cursor")) {
     return "cursor";
+  }
+  if (
+    root === join(openaiHome(), "skills") ||
+    (ctx.repoRoot !== null && root === join(ctx.repoRoot, ".openai", "skills"))
+  ) {
+    return "openai";
   }
   if (root.includes("/.codex/")) {
     return "codex";

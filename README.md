@@ -8,7 +8,7 @@ Grok Build, Codex, Cursor, Merlin, corvid-agent, private runners).
 ```bash
 let where .                         # what agent stuff is here?
 let find worktrees --json           # .claude/worktrees + ~/.codex + git + …
-let find skills --json              # Claude + Grok + Cursor + agent.3md planes
+let find skills --json              # Claude + Grok + Cursor + OpenAI + agent.3md planes
 let find agents --json              # agent.3md + host agent dirs
 let find memory --json              # memtrace / codex / gemini / .let (path-only)
 let find sessions --json            # all hosts, path-only
@@ -36,14 +36,14 @@ let web                              # local, read-only Fleet dashboard
 
 - **The let standard** — one closed kind set for every host; cards first, bodies on demand
 - **Worktrees** — git seed + Claude / Codex / Cursor / project / Grok DB, deduped by realpath
-- **Skills** — Claude, Grok, Cursor, Codex, let catalogs + **agent.3md skill planes**
+- **Skills** — Claude, Grok, Cursor, Codex, OpenAI, let catalogs + **agent.3md skill planes**
 - **Agents** — agent.3md / `*.3md` first-class + Claude/Codex/Cursor/Grok/Gemini/Kimi roots
 - **Commands** — Claude + Cursor slash-commands (project + user)
 - **Sessions / memory** — path-only federation (Claude, Grok, Codex, Cursor, Gemini, Kimi)
 - **Plugins / MCP / tasks** — Claude plugins & tasks, Cursor plans, MCP configs across hosts
 - **Workflows / superskills** — let-native + Grok workflow roots when present
 - **Show / open / route** — progressive bodies + agent.3md-first skill ranking
-- **Hosts** — Claude, Codex, Cursor, Grok, Gemini, Kimi Code, agent.3md, let
+- **Hosts** — Claude, Codex, Cursor, Grok, OpenAI, Gemini, Kimi Code, agent.3md, let
 - **Dogfood** — ships `agent.3md` and can find + show + route itself
 - **JSON-first** — stable envelopes for agents (`--json`)
 

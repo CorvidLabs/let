@@ -7,6 +7,7 @@ export type HostId =
   | "grok"
   | "codex"
   | "cursor"
+  | "openai"
   | "gemini"
   | "kimi"
   | "git"

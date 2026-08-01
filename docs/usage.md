@@ -119,7 +119,7 @@ let find instructions --json
 Kinds: `instructions`, `skills`, `agents`, `commands`, `worktrees`, `sessions`,
 `tasks`, `memory`, `mcp`, `plugins`, `workflows`, `superskills`.
 
-Hosts (`--host`): `claude`, `grok`, `codex`, `cursor`, `gemini`, `kimi`,
+Hosts (`--host`): `claude`, `grok`, `codex`, `cursor`, `openai`, `gemini`, `kimi`,
 `agent3md`, `git`, `project`, `let`, …
 
 ### Host × kind matrix
@@ -130,6 +130,7 @@ Hosts (`--host`): `claude`, `grok`, `codex`, `cursor`, `gemini`, `kimi`,
 | grok | worktrees.db | yes | bundled | — | path-only | memtrace | — | — | — |
 | codex | yes | optional | yes | — | path-only | sqlite/dir | yes | config path | — |
 | cursor | weak | yes | yes | yes | chats path | — | — | mcp.json | plans |
+| openai | — | yes | — | — | — | — | — | — | — |
 | gemini | — | — | antigravity | — | history path | brain/knowledge | — | mcp_config | — |
 | kimi | — | — | config path | — | workspaces path | user-history | — | — | — |
 | agent3md | — | skill planes | agent.3md | — | — | — | — | — | — |

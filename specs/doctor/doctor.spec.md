@@ -1,6 +1,6 @@
 ---
 module: doctor
-version: 1
+version: 2
 status: active
 files:
   - src/doctor.ts
@@ -32,6 +32,7 @@ defaults. Used by `let doctor --json`.
 2. Report always includes a git check and bun check.
 3. Config summary exposes allow_shell_exec and default_limit.
 4. Codex worktrees root is noted as shallow-scan only when present.
+5. OpenAI home and skills roots are reported when skill discovery supports OpenAI.
 
 ## Behavioral Examples
 
@@ -57,4 +58,5 @@ Then checks include id "git" with ok true and id "bun" with ok true
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2 | 2026-08-01 | Report OpenAI home and skills roots. |
 | 1 | 2026-07-30 | Initial doctor contract. |
