@@ -1,11 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { runLet } from "../src/run.ts";
-import { buildFleetSnapshot, fleetStateForSessions } from "../src/web.ts";
+import {
+  buildFleetSnapshot,
+  fleetStateForSessions,
+  parseLocalAgentProcessLines,
+} from "../src/web.ts";
 
 describe("web fleet snapshot", () => {
   test("is metadata-only and bounded", async () => {
     const snapshot = await buildFleetSnapshot(process.cwd(), Date.now());
     expect(snapshot.source).toBe("let");
+    expect(snapshot.liveProcessDetection).toBe("local-process");
+    expect(JSON.stringify(snapshot.workingNow)).not.toContain("/Users/");
     const repositories = [...snapshot.recentActivity, ...snapshot.history];
     expect(repositories.length).toBeLessThanOrEqual(48);
     expect(snapshot.policy).toContain("No session transcripts");
@@ -51,4 +57,25 @@ test("web rejects an unsafe port before starting a server", async () => {
   const result = await runLet(["web", "--port", "not-a-port"]);
   expect(result.code).toBe(1);
   expect(result.text).toContain("--port must be an integer");
+});
+
+test("only whitelisted local CLI processes become working agents", () => {
+  const agents = parseLocalAgentProcessLines(
+    "7 /opt/bin/grok\n8 /Applications/Codex\n9 /opt/bin/claude\n10 /bin/zsh",
+    (pid) =>
+      pid === "7" ? "/work/spec-sync" : pid === "9" ? "/work/let" : null,
+  );
+  expect(agents).toEqual([
+    { agent: "Grok", cwd: "/work/spec-sync" },
+    { agent: "Claude", cwd: "/work/let" },
+  ]);
+});
+
+test("Codex and Cursor helpers require a project cwd", () => {
+  const agents = parseLocalAgentProcessLines(
+    "7 codex\n8 cursor\n9 grok",
+    () => "/not-a-repository",
+    () => false,
+  );
+  expect(agents).toEqual([{ agent: "Grok", cwd: "/not-a-repository" }]);
 });

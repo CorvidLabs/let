@@ -29,6 +29,10 @@ workflow engine or a remote-control surface.
 | `FleetState` | Recent activity or History repository activity classification. |
 | `FleetWorktree` | Sanitized worktree and branch metadata belonging to a repository. |
 | `FleetRepository` | Repository-first collection of worktrees and secondary session evidence. |
+| `LiveAgent` | Whitelisted local CLI agent with an internal current working directory. |
+| `WorkingAgent` | Sanitized live agent record matched to a repo/worktree or marked unassigned. |
+| `compactCwd` | Reduce a local cwd to a short display suffix. |
+| `parseLocalAgentProcessLines` | Parse only whitelisted agent CLI processes and resolve their cwd internally. |
 | `FleetSnapshot` | Sanitized rows, bounded session metadata, refresh interval, and policy. |
 
 ## Invariants
@@ -38,7 +42,8 @@ workflow engine or a remote-control surface.
 3. Responses never include filesystem paths, session bodies, terminal output,
    secrets, browser shell endpoints, or agent-control actions.
 4. Repository cards group worktrees first; sessions remain secondary evidence.
-5. Live process detection is unavailable in this MVP. Fresh session metadata is Recent activity; stale records are History.
+5. Working now comes only from a local process probe with exact agent CLI executable allowlist and cwd resolution. Session timestamps never prove a process is running.
+6. Unmapped live processes are surfaced as Unassigned running agent with only a compact cwd display.
 6. Worktrees, sessions, instructions, and skills are capped before rendering.
 7. Session-only records are bounded and include metadata only.
 6. The normal CLI exits after ordinary commands, but remains alive while `web`
