@@ -17,6 +17,7 @@ describe("web fleet snapshot", () => {
     expect(snapshot.source).toBe("let");
     expect(snapshot.liveProcessDetection).toBe("local-process");
     expect(JSON.stringify(snapshot.workingNow)).not.toContain('"cwd"');
+    expect(JSON.stringify(snapshot.agents)).not.toContain("/Users/");
     const repositories = [...snapshot.recentActivity, ...snapshot.history];
     expect(repositories.length).toBeLessThanOrEqual(48);
     expect(snapshot.policy).toContain("redacted local task context");
@@ -47,14 +48,14 @@ test("Fleet API and HTML expose local supervision details without internal CWD k
   expect(page).toContain("Let Fleet / local control room");
 });
 
-test("agent context keeps a shared project and worktree from repeating", () => {
+test("agent context keeps project, worktree, and branch explicit", () => {
   expect(
     fleetContextLabels({
       project: "let",
       worktree: "let",
       branch: "feat/fleet",
     }),
-  ).toEqual(["Project: let", "Branch: feat/fleet"]);
+  ).toEqual(["Project: let", "Worktree: let", "Branch: feat/fleet"]);
 });
 
 test("Fleet session adapters label Claude, Codex, Grok, Gemini, and Antigravity fixtures", () => {
@@ -87,7 +88,7 @@ test("Fleet session adapters label Claude, Codex, Grok, Gemini, and Antigravity 
 test("Fleet adapter fixture keeps the latest redacted prompt and output", () => {
   const detail = fleetSessionDetail(
     [
-      '{"prompt":"First prompt"}',
+      '{"cwd":"/Users/leif/Development/_CorvidLabs/let/.worktrees/fleet-web","prompt":"First prompt"}',
       '{"output":"token=ghp_abcdefghijklmnopqrstuvwxyz123456"}',
       '{"status":"Finished safely"}',
     ].join("\n"),
@@ -96,6 +97,9 @@ test("Fleet adapter fixture keeps the latest redacted prompt and output", () => 
   expect(detail.latestMessage).toBe("Finished safely");
   expect(detail.recentActivity).toContain("First prompt");
   expect(JSON.stringify(detail)).toContain("[REDACTED]");
+  expect(detail.contextPath).toBe(
+    "/Users/leif/Development/_CorvidLabs/let/.worktrees/fleet-web",
+  );
 });
 
 test("local supervisor details redact known secret-shaped values", () => {

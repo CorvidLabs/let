@@ -18,6 +18,8 @@ export type FleetSessionDetail = {
   latestMessage: string | null;
   recentActivity: string[];
   detailAvailability: "available" | "unavailable";
+  /** Internal-only local directory used to resolve safe project context. */
+  contextPath: string | null;
 };
 
 export type FleetSessionAdapter = {
@@ -78,6 +80,29 @@ function sessionText(value: unknown): string[] {
   return [];
 }
 
+function sessionContextPaths(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(sessionContextPaths);
+  }
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  return Object.entries(value as Record<string, unknown>).flatMap(
+    ([key, child]) => {
+      if (
+        typeof child === "string" &&
+        /cwd|workdir|working[_-]?directory|workspace|repo[_-]?root|project[_-]?path/i.test(
+          key,
+        ) &&
+        /^(?:\/Users|\/home)\//.test(child)
+      ) {
+        return [child];
+      }
+      return sessionContextPaths(child);
+    },
+  );
+}
+
 /** Extract bounded display text from a session file that Let already indexed. */
 export function fleetSessionDetail(
   source: string | null,
@@ -88,13 +113,17 @@ export function fleetSessionDetail(
       latestMessage: null,
       recentActivity: [],
       detailAvailability: "unavailable",
+      contextPath: null,
     };
   }
+  let contextPath: string | null = null;
   const messages = source
     .split("\n")
     .flatMap((line) => {
       try {
-        return sessionText(JSON.parse(line));
+        const value = JSON.parse(line);
+        contextPath = sessionContextPaths(value).at(-1) ?? contextPath;
+        return sessionText(value);
       } catch {
         return line.trim() ? [line] : [];
       }
@@ -107,5 +136,6 @@ export function fleetSessionDetail(
     latestMessage: messages.at(-1) ?? null,
     recentActivity: messages,
     detailAvailability: messages.length > 0 ? "available" : "unavailable",
+    contextPath,
   };
 }
