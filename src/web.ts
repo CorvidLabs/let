@@ -716,6 +716,21 @@ export function retainFleetOpenKeys(
   return openKeys.filter((key) => available.has(key));
 }
 
+/** Merge visible panel state without discarding an open panel in the other view. */
+export function mergeFleetOpenKeys(
+  priorOpenKeys: readonly string[],
+  renderedKeys: readonly string[],
+  currentlyOpenKeys: readonly string[],
+): string[] {
+  const rendered = new Set(renderedKeys);
+  return [
+    ...new Set([
+      ...priorOpenKeys.filter((key) => !rendered.has(key)),
+      ...currentlyOpenKeys,
+    ]),
+  ];
+}
+
 /** Describe a material agent-state change for the local status announcement. */
 export function fleetLiveChangeAnnouncement(
   previous: readonly Pick<FleetAgentActivity, "agent" | "status">[],
@@ -748,7 +763,7 @@ export function fleetLiveChangeAnnouncement(
 }
 
 export function fleetHtml(): string {
-  const supervisor = fleetSupervisorHtmlV4();
+  const supervisor = fleetSupervisorHtmlV5();
   if (supervisor.length > 0) {
     return supervisor;
   }
@@ -775,6 +790,13 @@ function fleetSupervisorHtmlV4(): string {
   return fleetSupervisorHtmlV3().replace(
     "restoreUiState=()=>{",
     "restoreUiState=()=>{document.querySelectorAll('[data-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.view===view)));",
+  );
+}
+
+function fleetSupervisorHtmlV5(): string {
+  return fleetSupervisorHtmlV4().replace(
+    "ui.openKeys=new Set([...document.querySelectorAll('details[data-fleet-key][open]')].map(panel=>panel.dataset.fleetKey));",
+    "const renderedKeys=[...document.querySelectorAll('details[data-fleet-key]')].map(panel=>panel.dataset.fleetKey),currentlyOpenKeys=[...document.querySelectorAll('details[data-fleet-key][open]')].map(panel=>panel.dataset.fleetKey);ui.openKeys=new Set([...ui.openKeys].filter(key=>!renderedKeys.includes(key)).concat(currentlyOpenKeys));",
   );
 }
 

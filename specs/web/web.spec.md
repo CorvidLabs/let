@@ -39,6 +39,7 @@ workflow engine or a remote-control surface.
 | `redactLocalDetail` | Redact known token, credential, and environment-value patterns before local display. |
 | `fleetContextLabels` | Build explicit project, worktree, and branch labels for agent supervision. |
 | `retainFleetOpenKeys` | Keep open panel keys only while their backing Fleet cards remain available. |
+| `mergeFleetOpenKeys` | Merge visible panel state without discarding an open panel in the other view. |
 | `fleetLiveChangeAnnouncement` | Describe material agent visibility or status changes for accessible live updates. |
 | `parseLocalAgentProcessLines` | Parse only whitelisted agent CLI processes and resolve their cwd internally. |
 | `FleetSnapshot` | Sanitized rows, bounded session metadata, refresh interval, and policy. |

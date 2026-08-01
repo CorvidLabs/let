@@ -7,6 +7,7 @@ import {
   fleetHtml,
   fleetLiveChangeAnnouncement,
   fleetStateForSessions,
+  mergeFleetOpenKeys,
   parseLocalAgentProcessLines,
   redactLocalDetail,
   retainFleetOpenKeys,
@@ -141,6 +142,16 @@ test("Fleet refresh retains only panels with a current stable key", () => {
       ["agent:codex", "project:let"],
     ),
   ).toEqual(["agent:codex", "project:let"]);
+});
+
+test("Fleet refresh keeps a hidden view's open panel until its card is removed", () => {
+  expect(
+    mergeFleetOpenKeys(
+      ["agent:grok", "project:let"],
+      ["project:let", "project:quill"],
+      ["project:let"],
+    ),
+  ).toEqual(["agent:grok", "project:let"]);
 });
 
 test("Fleet announces only material agent changes after its first snapshot", () => {
