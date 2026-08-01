@@ -22,10 +22,13 @@ workflow engine or a remote-control surface.
 | Export | Description |
 |--------|-------------|
 | `buildFleetSnapshot` | Build a bounded, metadata-only Fleet snapshot from Let catalog APIs. |
+| `fleetStateForSessions` | Classify observed heartbeats as Recent activity or History. |
 | `startFleetWeb` | Start the local-only web server and return its URL and stop handle. |
 | `FleetFreshness` | One of live, recent, stale, or unknown activity states. |
 | `FleetSession` | Sanitized provider, session label, and bounded freshness metadata. |
-| `FleetRow` | Sanitized worktree, activity, session, instruction, and skill summary. |
+| `FleetState` | Recent activity or History repository activity classification. |
+| `FleetWorktree` | Sanitized worktree and branch metadata belonging to a repository. |
+| `FleetRepository` | Repository-first collection of worktrees and secondary session evidence. |
 | `FleetSnapshot` | Sanitized rows, bounded session metadata, refresh interval, and policy. |
 
 ## Invariants
@@ -34,8 +37,10 @@ workflow engine or a remote-control surface.
 2. Fleet data is derived from Let catalog APIs, not parsed terminal output.
 3. Responses never include filesystem paths, session bodies, terminal output,
    secrets, browser shell endpoints, or agent-control actions.
-4. Worktrees, sessions, instructions, and skills are capped before rendering.
-5. Session-only records are bounded and include metadata only.
+4. Repository cards group worktrees first; sessions remain secondary evidence.
+5. Live process detection is unavailable in this MVP. Fresh session metadata is Recent activity; stale records are History.
+6. Worktrees, sessions, instructions, and skills are capped before rendering.
+7. Session-only records are bounded and include metadata only.
 6. The normal CLI exits after ordinary commands, but remains alive while `web`
    owns the local server.
 
