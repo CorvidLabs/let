@@ -13,6 +13,7 @@ import {
   grokHome,
   homeDir,
   kimiHome,
+  openaiHome,
   projectClaudeDir,
 } from "./paths.ts";
 
@@ -104,6 +105,8 @@ export function runDoctor(cwd: string = process.cwd()): DoctorReport {
     "cursor.chats": rootEntry(join(cursorHome(), "chats"), "path-only"),
     "cursor.plans": rootEntry(join(cursorHome(), "plans"), "tasks kind"),
     "cursor.worktrees": rootEntry(join(cursorHome(), "worktrees")),
+    "openai.home": rootEntry(openaiHome()),
+    "openai.skills": rootEntry(join(openaiHome(), "skills")),
     "gemini.home": rootEntry(
       geminiHome(),
       "GEMINI.md + history + projects.json",

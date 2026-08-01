@@ -6,6 +6,7 @@ import { buildContext } from "../src/catalog/context.ts";
 import { buildScanContext } from "../src/catalog/context-builder.ts";
 import { findAssets } from "../src/catalog/find.ts";
 import { whereAmI } from "../src/catalog/where.ts";
+import { DEFAULT_CONFIG } from "../src/config.ts";
 
 describe("find", () => {
   test("find instructions in let repo", async () => {
@@ -35,7 +36,14 @@ describe("find", () => {
       join(skillDir, "SKILL.md"),
       "---\nname: agent-coordination\ndescription: Coordinate agents\n---\n# Coordination\n",
     );
-    const ctx = buildScanContext({ cwd: root, scope: "project" });
+    const ctx = buildScanContext({
+      cwd: root,
+      scope: "project",
+      config: {
+        ...DEFAULT_CONFIG,
+        find: { ...DEFAULT_CONFIG.find, include_user_skills: false },
+      },
+    });
     const r = await findAssets("skills", ctx, { host: "openai" });
     expect(r.items).toHaveLength(1);
     expect(r.items[0]?.host).toBe("openai");
@@ -43,6 +51,32 @@ describe("find", () => {
     expect(realpathSync(r.items[0]?.path ?? "")).toBe(
       realpathSync(join(skillDir, "SKILL.md")),
     );
+  });
+
+  test("find skills keeps generic project roots below .openai attributed to project", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "let-openai-parent-"));
+    const root = join(parent, ".openai", "worktrees", "repo");
+    mkdirSync(root, { recursive: true });
+    Bun.spawnSync(["git", "init"], { cwd: root });
+    const skillDir = join(root, "skills", "generic-skill");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(skillDir, "SKILL.md"), "# Generic skill\n");
+
+    const ctx = buildScanContext({
+      cwd: root,
+      scope: "project",
+      config: {
+        ...DEFAULT_CONFIG,
+        find: { ...DEFAULT_CONFIG.find, include_user_skills: false },
+      },
+    });
+    const r = await findAssets("skills", ctx, { host: "project" });
+    const genericSkill = r.items.find(
+      (item) =>
+        realpathSync(item.path) === realpathSync(join(skillDir, "SKILL.md")),
+    );
+
+    expect(genericSkill?.host).toBe("project");
   });
 
   test("find worktrees dedupes paths", async () => {
