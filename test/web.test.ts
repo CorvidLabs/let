@@ -5,9 +5,11 @@ import {
   buildFleetSnapshot,
   fleetContextLabels,
   fleetHtml,
+  fleetLiveChangeAnnouncement,
   fleetStateForSessions,
   parseLocalAgentProcessLines,
   redactLocalDetail,
+  retainFleetOpenKeys,
   selectAgentWorkContext,
 } from "../src/web.ts";
 
@@ -114,18 +116,45 @@ test("local supervisor details redact known secret-shaped values", () => {
   );
 });
 
-test("Fleet page starts by agent and keeps project worktrees collapsed", () => {
+test("Fleet page preserves refresh state with stable agent and project panel keys", () => {
   const page = fleetHtml();
   expect(page).toContain('data-view="agents"');
   expect(page).toContain(">Agents</button>");
   expect(page).toContain(">Projects</button>");
   expect(page).toContain("Unassigned running agent");
-  expect(page).toContain('<details class="card">');
-  expect(page).not.toContain('<details class="card" open');
+  expect(page).toContain("details[data-fleet-key][open]");
+  expect(page).toContain("captureUiState");
+  expect(page).toContain("restoreUiState");
+  expect(page).toContain("setInterval(refresh,20000)");
+  expect(page).toContain('role="status" aria-live="polite"');
   expect(page).not.toContain("No session heartbeat");
   expect(page).toContain(
     "agent')+' working · '+plural(projects.length,'project",
   );
+});
+
+test("Fleet refresh retains only panels with a current stable key", () => {
+  expect(
+    retainFleetOpenKeys(
+      ["agent:codex", "agent:grok", "project:let"],
+      ["agent:codex", "project:let"],
+    ),
+  ).toEqual(["agent:codex", "project:let"]);
+});
+
+test("Fleet announces only material agent changes after its first snapshot", () => {
+  expect(
+    fleetLiveChangeAnnouncement(
+      [{ agent: "Codex", status: "recent" }],
+      [
+        { agent: "Codex", status: "working" },
+        { agent: "Grok", status: "recent" },
+      ],
+    ),
+  ).toBe("Codex is now working. Grok is now visible.");
+  expect(
+    fleetLiveChangeAnnouncement([], [{ agent: "Codex", status: "recent" }]),
+  ).toBe("");
 });
 
 test("a child verifier context overrides its agent parent worktree", () => {

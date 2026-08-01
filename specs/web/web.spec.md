@@ -38,6 +38,8 @@ workflow engine or a remote-control surface.
 | `selectAgentWorkContext` | Prefer a bounded child verifier worktree over its agent parent process context. |
 | `redactLocalDetail` | Redact known token, credential, and environment-value patterns before local display. |
 | `fleetContextLabels` | Build explicit project, worktree, and branch labels for agent supervision. |
+| `retainFleetOpenKeys` | Keep open panel keys only while their backing Fleet cards remain available. |
+| `fleetLiveChangeAnnouncement` | Describe material agent visibility or status changes for accessible live updates. |
 | `parseLocalAgentProcessLines` | Parse only whitelisted agent CLI processes and resolve their cwd internally. |
 | `FleetSnapshot` | Sanitized rows, bounded session metadata, refresh interval, and policy. |
 | `FLEET_SESSION_ADAPTERS` | Let-native presentation adapters for Claude, Codex, Grok, Gemini, and Antigravity session cards. |
@@ -67,6 +69,8 @@ workflow engine or a remote-control surface.
 13. Agent context shows project, worktree, and branch independently when Let can resolve them; raw local paths never leave the server.
 14. Fleet maps host session cards through explicit presentation adapters; it does not scan host paths independently of Let's catalog.
 15. Gemini must be shown through its Gemini or Antigravity adapter when indexed, otherwise Fleet shows an explicit unavailable state.
+16. A 20-second refresh preserves the selected view, open Fleet panels, scroll position, and focused control where the backing card remains available; removed cards may no longer retain state.
+17. Material agent visibility or status changes are announced through a polite live region without moving focus.
 
 ## Behavioral Examples
 
