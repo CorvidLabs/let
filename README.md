@@ -19,6 +19,7 @@ let show skill find-worktrees --json  # progressive body load
 let open ./agent.3md --json
 let context --json
 let doctor --json
+let web                              # local, read-only Fleet dashboard
 ```
 
 **Federation over relocation:** indexes host assets *in place* — never migrates
@@ -63,6 +64,19 @@ fledge let where .
 Any project that already uses fledge can install `let` the same way as
 `fledge-plugin-memory` / `fledge-plugin-github`. Agents then call `fledge let …`
 without a separate PATH setup.
+
+### Local Fleet view
+
+```bash
+let web
+# or: fledge let web
+```
+
+Starts a local-only dashboard at `http://127.0.0.1:8731`. Fleet is a Let-native
+control room built from the federated index: it shows each local agent's status,
+task or latest prompt, activity, timestamps, and project context. Expanded
+cards may show bounded, redacted local session text from an already-indexed
+session file. It never provides agent controls or shell execution.
 
 ### Standalone (any host: Claude, Codex, Cursor, Kimi, …)
 

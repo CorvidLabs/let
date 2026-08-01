@@ -27,7 +27,9 @@ async function main(): Promise<void> {
     await new Promise<void>((resolve) => {
       process.stdout.write("", () => resolve());
     });
-    process.exit(result.code);
+    if (!result.keepAlive) {
+      process.exit(result.code);
+    }
   } catch (err) {
     sendError(err instanceof Error ? err.message : String(err));
     process.exit(10);

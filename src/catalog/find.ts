@@ -193,6 +193,12 @@ export async function findAssets(
   // Filter before limit so --host kimi is not starved by other hosts
   if (opts.host) {
     items = items.filter((c) => c.host === opts.host);
+    // A host-specific session view is an activity feed. Preserve the normal
+    // catalog sort for federation, but return the newest bounded session cards
+    // first so a current provider is not hidden by older archive buckets.
+    if (kind === "sessions") {
+      items.sort((left, right) => (right.mtime_ms ?? 0) - (left.mtime_ms ?? 0));
+    }
   }
 
   if (opts.query) {
