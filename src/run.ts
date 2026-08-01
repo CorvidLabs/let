@@ -238,7 +238,7 @@ export async function runLet(
     });
     return {
       code: 0,
-      text: `Let Fleet is running at ${dashboard.url}\nRead-only local index: no transcripts, shell access, or agent controls.\n`,
+      text: `Let Fleet is running at ${dashboard.url}\nLocal-only supervisor: redacted agent command, progress, and session detail; no controls.\n`,
       keepAlive: true,
     };
   }
