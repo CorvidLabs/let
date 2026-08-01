@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { buildContext } from "../src/catalog/context.ts";
 import { buildScanContext } from "../src/catalog/context-builder.ts";
 import { findAssets } from "../src/catalog/find.ts";
@@ -21,6 +24,25 @@ describe("find", () => {
     // at least grok or claude skills often present on this machine
     expect(r.total).toBeGreaterThanOrEqual(0);
     expect(r.items.length).toBeLessThanOrEqual(ctx.limit);
+  });
+
+  test("find skills discovers project openai skill roots", async () => {
+    const root = mkdtempSync(join(tmpdir(), "let-openai-"));
+    Bun.spawnSync(["git", "init"], { cwd: root });
+    const skillDir = join(root, ".openai", "skills", "agent-coordination");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      "---\nname: agent-coordination\ndescription: Coordinate agents\n---\n# Coordination\n",
+    );
+    const ctx = buildScanContext({ cwd: root, scope: "project" });
+    const r = await findAssets("skills", ctx, { host: "openai" });
+    expect(r.items).toHaveLength(1);
+    expect(r.items[0]?.host).toBe("openai");
+    expect(r.items[0]?.name).toBe("agent-coordination");
+    expect(realpathSync(r.items[0]?.path ?? "")).toBe(
+      realpathSync(join(skillDir, "SKILL.md")),
+    );
   });
 
   test("find worktrees dedupes paths", async () => {

@@ -26,6 +26,9 @@ function hostForSkillRoot(root: string, ctx: ScanContext): HostId {
   if (root.includes("/.cursor/") || root.includes("skills-cursor")) {
     return "cursor";
   }
+  if (root.includes("/.openai/")) {
+    return "openai";
+  }
   if (root.includes("/.codex/")) {
     return "codex";
   }
