@@ -94,6 +94,29 @@ export function findCodexSessions(ctx: ScanContext): IndexCard[] {
                 meta: { source: `codex.${rel}`, level: "child" },
               }),
             );
+            // A current Codex session normally lives at year/month/rollout.jsonl.
+            // Index that final file level as well so local Fleet can show its
+            // already-indexed, redacted latest prompt alongside a live process.
+            if (isDirectory(child)) {
+              for (const session of listChildPaths(child, ctx.policy).slice(
+                0,
+                50,
+              )) {
+                if (!session.endsWith(".jsonl")) {
+                  continue;
+                }
+                cards.push(
+                  makeCard({
+                    kind: "sessions",
+                    host: "codex",
+                    path: session,
+                    scope: "user",
+                    pathOnly: true,
+                    meta: { source: `codex.${rel}`, level: "session" },
+                  }),
+                );
+              }
+            }
           }
         } else if (name.endsWith(".jsonl")) {
           cards.push(

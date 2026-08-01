@@ -2,7 +2,7 @@
  * Progressive disclosure: show full body for a card, with security caps.
  */
 
-import { basename } from "node:path";
+import { basename, relative } from "node:path";
 import { Agent } from "@corvidlabs/agent3md";
 import type { ScanContext } from "../adapters/types.ts";
 import { LetError } from "../errors.ts";
@@ -126,6 +126,17 @@ export async function resolveCard(
     return nameHits[0];
   }
   if (nameHits.length > 1) {
+    // A checkout and its linked worktrees may legitimately contribute the
+    // same agent.3md plane. When one exact card belongs to the caller's cwd,
+    // it is the least surprising progressive-disclosure target.
+    const localHits = nameHits.filter((card) => {
+      const path = safeRealpath(card.path) ?? card.path;
+      const rel = relative(ctx.cwd, path);
+      return rel !== "" && !rel.startsWith("..") && !rel.startsWith("/");
+    });
+    if (localHits.length === 1 && localHits[0]) {
+      return localHits[0];
+    }
     throw new LetError(
       "conflict",
       `Multiple ${kind} named "${ref}"; pass full id`,

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { fleetAdapterFor, fleetSessionDetail } from "../src/fleet-adapters.ts";
 import { runLet } from "../src/run.ts";
 import {
   buildFleetSnapshot,
@@ -37,10 +38,13 @@ test("Fleet API and HTML expose local supervision details without internal CWD k
     expect(response).not.toContain('"cwd"');
     expect(response).not.toContain('"pid"');
   }
-  expect(page).toContain("Local-only supervisor view");
+  expect(page).toContain("Let Fleet / local control room");
   expect(page).toContain("Latest prompt or update");
   expect(page).toContain("Recent output");
   expect(page).toContain("Show supervision details");
+  expect(page).toContain("/assets/tokens.css");
+  expect(page).toContain("data-corvid-theme-toggle");
+  expect(page).toContain("Let Fleet / local control room");
 });
 
 test("agent context keeps a shared project and worktree from repeating", () => {
@@ -51,6 +55,47 @@ test("agent context keeps a shared project and worktree from repeating", () => {
       branch: "feat/fleet",
     }),
   ).toEqual(["Project: let", "Branch: feat/fleet"]);
+});
+
+test("Fleet session adapters label Claude, Codex, Grok, Gemini, and Antigravity fixtures", () => {
+  const fixtures = [
+    { host: "claude", meta: {}, provider: "Claude" },
+    { host: "codex", meta: {}, provider: "Codex" },
+    { host: "grok", meta: {}, provider: "Grok" },
+    { host: "gemini", meta: {}, provider: "Gemini" },
+    {
+      host: "gemini",
+      meta: { source: "antigravity-cli" },
+      provider: "Antigravity",
+    },
+  ] as const;
+  for (const fixture of fixtures) {
+    expect(
+      fleetAdapterFor({
+        id: `sessions:${fixture.provider}`,
+        kind: "sessions",
+        host: fixture.host,
+        name: fixture.provider,
+        path: `/fixture/${fixture.provider}.jsonl`,
+        scope: "user",
+        meta: fixture.meta,
+      })?.provider,
+    ).toBe(fixture.provider);
+  }
+});
+
+test("Fleet adapter fixture keeps the latest redacted prompt and output", () => {
+  const detail = fleetSessionDetail(
+    [
+      '{"prompt":"First prompt"}',
+      '{"output":"token=ghp_abcdefghijklmnopqrstuvwxyz123456"}',
+      '{"status":"Finished safely"}',
+    ].join("\n"),
+    redactLocalDetail,
+  );
+  expect(detail.latestMessage).toBe("Finished safely");
+  expect(detail.recentActivity).toContain("First prompt");
+  expect(JSON.stringify(detail)).toContain("[REDACTED]");
 });
 
 test("local supervisor details redact known secret-shaped values", () => {
@@ -65,8 +110,8 @@ test("local supervisor details redact known secret-shaped values", () => {
 test("Fleet page starts by agent and keeps project worktrees collapsed", () => {
   const page = fleetHtml();
   expect(page).toContain('data-view="agents"');
-  expect(page).toContain("By agent");
-  expect(page).toContain("By project");
+  expect(page).toContain(">Agents</button>");
+  expect(page).toContain(">Projects</button>");
   expect(page).toContain("Unassigned running agent");
   expect(page).toContain('<details class="card">');
   expect(page).not.toContain('<details class="card" open');

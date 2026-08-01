@@ -4,6 +4,8 @@ version: 1
 status: active
 files:
   - src/web.ts
+  - src/fleet-adapters.ts
+  - src/fleet-brand.ts
 db_tables: []
 depends_on:
   - catalog
@@ -38,6 +40,14 @@ workflow engine or a remote-control surface.
 | `fleetContextLabels` | Build concise context labels without repeating a project as its worktree. |
 | `parseLocalAgentProcessLines` | Parse only whitelisted agent CLI processes and resolve their cwd internally. |
 | `FleetSnapshot` | Sanitized rows, bounded session metadata, refresh interval, and policy. |
+| `FLEET_SESSION_ADAPTERS` | Let-native presentation adapters for Claude, Codex, Grok, Gemini, and Antigravity session cards. |
+| `fleetAdapterFor` | Resolve the local Fleet presentation adapter for an indexed session card. |
+| `fleetSessionDetail` | Extract bounded, redacted display text from an already-indexed local session file. |
+| `FleetProvider` | Supported Fleet session-provider name. |
+| `FleetSessionDetail` | Bounded local prompt and output detail for an indexed session file. |
+| `FleetSessionAdapter` | Host-card matching contract for Fleet's presentation adapters. |
+| `CORVID_TOKENS_CSS` | Local serving copy of the CorvidLabs design-system token stylesheet. |
+| `CORVID_THEME_JS` | Local serving copy of the standard CorvidLabs theme controller. |
 
 ## Invariants
 
@@ -55,6 +65,8 @@ workflow engine or a remote-control surface.
 11. The process probe may inspect a bounded descendant tree internally to classify an allowlisted operation label; the localhost supervisor may show its redacted command and resolved project context, but never exposes process IDs.
 12. The localhost supervisor may expose redacted command, prompt/update, and recent output only after applying `redactLocalDetail`; unavailable detail is labeled instead of inferred.
 13. Agent context must not repeat a worktree label when it is the same value as its project label.
+14. Fleet maps host session cards through explicit presentation adapters; it does not scan host paths independently of Let's catalog.
+15. Gemini must be shown through its Gemini or Antigravity adapter when indexed, otherwise Fleet shows an explicit unavailable state.
 
 ## Behavioral Examples
 

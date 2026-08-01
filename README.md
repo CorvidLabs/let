@@ -72,10 +72,11 @@ let web
 # or: fledge let web
 ```
 
-Starts a local-only dashboard at `http://127.0.0.1:8731`. It is a visual view
-of Let's own federated index: worktrees, providers, bounded session activity,
-instructions, and skills. It does not expose transcripts, filesystem paths,
-terminal output, or agent controls.
+Starts a local-only dashboard at `http://127.0.0.1:8731`. Fleet is a Let-native
+control room built from the federated index: it shows each local agent's status,
+task or latest prompt, activity, timestamps, and project context. Expanded
+cards may show bounded, redacted local session text from an already-indexed
+session file. It never provides agent controls or shell execution.
 
 ### Standalone (any host: Claude, Codex, Cursor, Kimi, …)
 
