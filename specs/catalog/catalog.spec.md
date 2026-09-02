@@ -51,7 +51,6 @@ Context packs never include session paths or bodies.
 |--------|-------------|
 | `HostId` | Host attribution id (claude, grok, codex, cursor, openai, gemini, kimi, git, project, corvid, let, agent3md, unknown). |
 | `FindKind` | Closed catalog kind union for find/show. |
-| `FIND_KINDS` | Runtime list of all FindKind values. |
 | `FindScope` | project \| user \| all. |
 | `CardScope` | project \| user \| global on cards. |
 | `WorktreeStatus` | active \| prunable \| locked \| unknown \| missing. |
@@ -63,7 +62,6 @@ Context packs never include session paths or bodies.
 | `ContextResult` | context pack; sessions never []. |
 | `BuildContextOptions` | Options for buildScanContext. |
 | `ScanPolicy` | Fixed-root shallow scan limits and deny basenames. |
-| `DEFAULT_SCAN_POLICY` | Default ScanPolicy. |
 | `WorktreeBase` | In-repo worktree parent descriptor. |
 | `AssetBody` | showAsset return: card + body/payload. |
 | `OpenResult` | openPath classification + optional preview. |
@@ -117,8 +115,6 @@ Context packs never include session paths or bodies.
 | `externalWorktreeRoots` | Document caller-visible behavior and constraints. |
 | `skillRoots` | Fixed project and user skill catalog roots, including `.openai/skills`; user roots obey `include_user_skills`. |
 | `isDeniedBasename` | Document caller-visible behavior and constraints. |
-| `MAX_BODY_BYTES` | Document caller-visible behavior and constraints. |
-| `MAX_OPEN_PREVIEW_BYTES` | Document caller-visible behavior and constraints. |
 | `normalizeShowKind` | Document caller-visible behavior and constraints. |
 | `findGeminiAgents` | Document caller-visible behavior and constraints. |
 | `findKimiAgents` | Document caller-visible behavior and constraints. |
