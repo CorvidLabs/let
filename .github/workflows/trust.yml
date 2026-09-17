@@ -26,7 +26,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install hi (Human Intent)
-        run: cargo install human-intent --version 0.4.0 --locked
+        run: cargo install human-intent --version 0.5.0 --locked
 
       - name: Human Intent check
         run: hi check
