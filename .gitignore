@@ -11,3 +11,6 @@ augur.json
 
 # spec-sync 5.x auto-fix backups
 .specsync/backup-fix/
+
+# human-intent rendered page
+intent.html
